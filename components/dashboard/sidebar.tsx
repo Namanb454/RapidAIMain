@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/context/auth-context"
@@ -13,6 +13,7 @@ interface SidebarProps {
 }
 
 export function Sidebar({ className }: SidebarProps) {
+  const router  = useRouter();
   const pathname = usePathname()
   const { signOut } = useAuth()
   const [mobileOpen, setMobileOpen] = useState(false)
@@ -49,7 +50,8 @@ export function Sidebar({ className }: SidebarProps) {
   ]
 
   const handleSignOut = async () => {
-    await signOut()
+    await signOut();
+    router.push("/");
   }
 
   return (
