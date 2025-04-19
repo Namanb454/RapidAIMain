@@ -8,7 +8,7 @@ export default function DashboardPage() {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">Dashboard</h2>
+          <h2 className="text-2xl font-bold">Dashboard</h2>
           <p className="text-muted-foreground">Welcome to your AI Video Generator dashboard</p>
         </div>
         <Link href="/dashboard/create">

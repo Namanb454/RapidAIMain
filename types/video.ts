@@ -2,6 +2,7 @@
 
 export type DurationOption = "30-45" | "45-60" | "60-90"
 export type VoiceOption = "alloy" | "echo" | "fable" | "onyx" | "nova" | "shimmer"
+// export type MusicOption = "BladeRunner" | "Snowfall" | "Another Love" | "Else-Paris"
 
 export interface VideoApiResponse {
   job_id: string;

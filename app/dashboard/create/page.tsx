@@ -33,16 +33,16 @@ export default function CreateVideoPage(): JSX.Element {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 text-white">
       <div>
-        <h2 className="text-2xl font-bold tracking-tight">Create New Video</h2>
+        <h2 className="text-2xl font-bold ">Create New Video</h2>
         <p className="text-muted-foreground">Generate a video using AI by describing what you want to see</p>
       </div>
 
       <Tabs defaultValue="text-to-video" className="w-full">
-        <TabsList className="grid w-full max-w-xs grid-cols-2">
-          <TabsTrigger value="text-to-video">Text to Video</TabsTrigger>
-          <TabsTrigger value="narration-to-video">Narration to Video</TabsTrigger>
+        <TabsList className="grid w-full max-w-xs grid-cols-2 bg-neutral-800 rounded-3xl">
+          <TabsTrigger className="data-[state=active]:bg-neutral-100 rounded-3xl" value="text-to-video">Text to Video</TabsTrigger>
+          <TabsTrigger className="data-[state=active]:bg-neutral-100 rounded-3xl" value="narration-to-video">Narration to Video</TabsTrigger>
         </TabsList>
         <TabsContent value="text-to-video" className="mt-4">
           <TextToVideoTab {...sharedProps} />

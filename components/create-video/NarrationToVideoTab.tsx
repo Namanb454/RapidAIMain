@@ -7,6 +7,7 @@ import VideoForm from "./VideoForm"
 import VideoPreview from "./VideoPreview"
 import { generateVideoFromNarration } from "@/app/actions/narration-actions"
 import { checkJobStatus } from "@/app/actions/video-actions"
+import VideoFields from "./VideoFields"
 
 // Character limits based on duration ranges
 const DURATION_CHAR_LIMITS: Record<string, number> = {
@@ -135,6 +136,23 @@ export default function NarrationToVideoTab({
   return (
     <div className="grid gap-6 md:grid-cols-2">
       <VideoForm
+        textareaLabel="Enter your narration script"
+        textareaPlaceholder="Enter your full narration script here..."
+        textareaValue={script}
+        onTextareaChange={handleScriptChange}
+        duration={duration}
+        setDuration={setDuration}
+        voice={voice}
+        setVoice={setVoice}
+        error={error}
+        onSubmit={handleGenerateVideo}
+        isSubmitDisabled={!script || loading}
+        loading={loading}
+        title="Video Description"
+        description={`Narration script (${charCount}/${charLimit} characters, ~${getApproxWordCount()}/${getWordLimit()} words)`}
+      />
+
+      <VideoFields
         textareaLabel="Enter your narration script"
         textareaPlaceholder="Enter your full narration script here..."
         textareaValue={script}

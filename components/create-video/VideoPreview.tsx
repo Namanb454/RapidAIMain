@@ -14,15 +14,15 @@ export default function VideoPreview({
   onRegenerate
 }: VideoPreviewProps): JSX.Element {
   return (
-    <Card className="md:col-span-1">
+    <Card className="md:col-span-1 bg-neutral-950 text-white border-neutral-800 rounded-3xl">
       <CardHeader>
         <CardTitle>Preview</CardTitle>
         <CardDescription>Your generated video will appear here</CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="aspect-video overflow-hidden rounded-lg bg-muted">
+        <div className="aspect-video overflow-hidden rounded-3xl bg-muted bg-neutral-950">
           {generated && videoUrl ? (
-            <video className="h-full w-full object-cover" controls preload="none">
+            <video className="h-full w-full object-cover bg-neutral-950" controls preload="none">
               <source src={videoUrl} type="video/mp4" />
               {/* <track
               src="/path/to/captions.vtt"
@@ -37,7 +37,7 @@ export default function VideoPreview({
               <p className="text-center">Video generated! URL: {videoUrl}</p>
             </div>
           ) : (
-            <div className="flex h-full flex-col items-center justify-center p-4">
+            <div className="flex h-full flex-col items-center justify-center p-4 bg-neutral-950 border-0">
               <Wand2 className="mb-2 h-8 w-8 text-muted-foreground" />
               <p className="text-center text-sm text-muted-foreground">
                 {loading ? "Generating your video..." : "No preview available yet"}
@@ -49,10 +49,11 @@ export default function VideoPreview({
       <CardFooter className="justify-between">
         {generated && (
           <>
-            <Button variant="outline" onClick={onRegenerate}>Regenerate</Button>
+            <Button variant="outline" className="bg-indigo-600 hover:bg-indigo-700 rounded-3xl" onClick={onRegenerate}>Regenerate</Button>
             {videoUrl && (
               <Button asChild>
-                <a href={videoUrl} download target="_blank" rel="noopener noreferrer">Download</a>
+                <a href={videoUrl} download target="_blank" rel="noopener noreferrer"
+                  className="bg-indigo-600 hover:bg-indigo-700 rounded-3xl">Download</a>
               </Button>
             )}
           </>
