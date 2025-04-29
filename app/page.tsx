@@ -9,59 +9,101 @@ import HowItWorks from '@/components/HowItWorks';
 import Example from '@/components/Example';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
+import { easeInOut, motion, scale } from 'framer-motion';
+import { FeatureData } from './data';
 
 export default function Home() {
+  const containerVariants = {
+    hidden: { y: 200, opacity: 0 },
+    show: {
+      opacity: 1,
+      y: 0,
+      transition: {
+        staggerChildren: 0.3, // Delay between children
+        duration: 0.6
+      },
+    },
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    show: { opacity: 1, y: 0 },
+  };
+
+  const featureVariants = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.3, // Delay between children
+        duration: 0.1,
+        ease: easeInOut,
+      },
+    },
+  };
+
+  const featureItemVariants = {
+    hidden: { opacity: 0 },
+    show: { opacity: 1 },
+    transition: {
+      ease: easeInOut, // apply to individual item animations too
+      duration: 0.1,
+    },
+  };
 
   return (
     <>
       <Navbar />
-      <div className="min-h-screen bg-black text-white">
+      <div className="min-h-screen text-white bg-black">
+
         {/* Hero Section */}
         <Hero />
 
         {/* Features Section */}
-        <section id="features" className="py-20 px-4 md:px-6 lg:px-8 bg-neutral-950">
-          <div className="max-w-7xl mx-auto">
-            <div className="text-center mb-16">
-              <h2 className="text-3xl md:text-4xl font-bold mb-4">Powerful Features</h2>
-              <p className="text-xl text-neutral-300 max-w-2xl mx-auto">
+        <motion.section
+          variants={containerVariants}
+          initial="hidden"
+          whileInView="show"
+          id="features" className="py-20 px-4 md:px-6 lg:px-8 overflow-hidden">
+
+          <motion.div
+            className="max-w-7xl mx-auto">
+            <motion.div
+              className="text-center mb-16">
+              <motion.h2
+                variants={itemVariants}
+                className="max-w-xl rounded-3xl mx-auto text-3xl md:text-5xl font-extrabold mb-4 bggradient-to-r from-indigo-500  to-indigo-950">
+                Powerful Features
+              </motion.h2>
+
+              <p className="text-xl text-neutral-300 mx-auto">
                 Everything you need to create professional videos without design or video editing skills
               </p>
-            </div>
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-              <FeatureCard
-                icon={Sparkles}
-                title="AI-Powered Generation"
-                description="Transform text prompts into fully realized videos with our advanced AI algorithms."
-              />
-              <FeatureCard
-                icon={FileEdit}
-                title="Editable Narration"
-                description="Customize the AI-generated narration to perfectly match your brand voice and style."
-              />
-              <FeatureCard
-                icon={Zap}
-                title="Fast Rendering"
-                description="Generate high-quality videos in minutes instead of hours or days."
-              />
-              <FeatureCard
-                icon={Video}
-                title="Multiple Formats"
-                description="Export videos in various formats optimized for social media, presentations, or websites."
-              />
-              <FeatureCard
-                icon={Globe}
-                title="Multi-language Support"
-                description="Create videos in multiple languages with accurate translations and native-sounding narration."
-              />
-              <FeatureCard
-                icon={Layout}
-                title="Customizable Templates"
-                description="Choose from dozens of pre-designed templates or create your own unique style."
-              />
-            </div>
-          </div>
-        </section>
+            </motion.div>
+
+            <motion.div
+              variants={featureVariants}
+              initial="hidden"
+              whileInView="show"
+              className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 relative z-10">
+              {FeatureData.map((item, index) => {
+                return (
+                  <motion.div
+                    variants={featureItemVariants}
+                    key={index}
+                  >
+                    <FeatureCard
+                      icon={item.icon}
+                      title={item.title}
+                      description={item.description}
+                    />
+                  </motion.div>
+                )
+              })}
+
+            </motion.div>
+          </motion.div>
+        </motion.section>
 
         {/* How It Works Section */}
         <HowItWorks />

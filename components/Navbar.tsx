@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Menu, X } from 'lucide-react';
-import { useRouter } from 'next/router';
+import { motion } from 'framer-motion'
 
 const Navbar = () => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -49,40 +49,67 @@ const Navbar = () => {
         { label: 'Examples', href: '#examples' }
     ];
 
+    const containerVariants = {
+        hidden: { y: 200, opacity: 0 },
+        show: {
+            opacity: 1,
+            y: 0,
+            transition: {
+                staggerChildren: 0.3, // Delay between children
+                duration: 0.6
+            },
+        },
+    };
+
+    const itemVariants = {
+        hidden: { opacity: 0, y: 20 },
+        show: { opacity: 1, y: 0 },
+    };
+
+
     return (
         <header
             className={`fixed top-0 left-0 right-0 z-50 w-full transition-all duration-300 ${scrolled ? 'bg-black/80 backdrop-blur-md py-4 shadow-md' : 'bg-transparent py-7'
                 }`}
         >
-            <nav className="max-w-7xl mx-auto px-4 md:px-6 lg:px-4">
-                <div className="flex items-center justify-between">
-                    <Link href='/' className="flex-none text-2xl font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-2 focus:ring-offset-black rounded-lg" aria-label="Rapid AI">
-                        <span className='text-white'>Rapid</span>
-                        <span className='text-indigo-400'>AI</span>
-                    </Link>
+            <motion.nav
+                className="max-w-7xl mx-auto px-4 md:px-6 lg:px-4">
+
+                <motion.div
+                    variants={containerVariants}
+                    className="flex items-center justify-between">
+                    <motion.div
+                        variants={itemVariants}
+                    >
+                        <Link href='/' className="flex-none text-2xl font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-2 focus:ring-offset-black rounded-lg" aria-label="Rapid AI">
+                            <span className='text-white'>Rapid</span>
+                            <span className='text-indigo-400'>AI</span>
+                        </Link>
+                    </motion.div>
 
                     <div className="hidden lg:flex items-center space-x-10">
                         {navItems.map((item) => (
-                            <Link
+                            <motion.div
                                 key={item.label}
-                                href={item.href}
-                                className="text-white hover:text-indigo-300 relative after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-0 hover:after:w-full after:bg-indigo-500 after:transition-all after:duration-300 focus:outline-none focus:text-indigo-300"
+                                variants={itemVariants}
                             >
-                                {item.label}
-                            </Link>
+                                <Link
+                                    href={item.href}
+                                    className="text-white hover:text-indigo-300 relative after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-0 hover:after:w-full after:bg-indigo-500 after:transition-all after:duration-300 focus:outline-none focus:text-indigo-300"
+                                >
+                                    {item.label}
+                                </Link>
+                            </motion.div>
                         ))}
-                        <div className='space-x-2'>
+                        <motion.div
+                            variants={itemVariants}
+                            className='space-x-2'>
                             {<Link href='/login'>
                                 <Button className='font-medium bg-neutral-800 text-white'>
-                                    Sign In
+                                    Create Video
                                 </Button>
                             </Link>}
-                            {<Link href='/login'>
-                                <Button variant='secondary' className='font-medium'>
-                                    Sign Up
-                                </Button>
-                            </Link>}
-                        </div>
+                        </motion.div>
                     </div>
 
                     <button
@@ -94,7 +121,7 @@ const Navbar = () => {
                     >
                         {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
                     </button>
-                </div>
+                </motion.div>
 
                 <div
                     className={`lg:hidden w-full overflow-hidden transition-all duration-300 ease-in-out ${isMenuOpen ? 'max-h-80 mt-4' : 'max-h-0'
@@ -124,8 +151,8 @@ const Navbar = () => {
                         </Link>
                     </div>
                 </div>
-            </nav>
-        </header>
+            </motion.nav>
+        </header >
     );
 };
 

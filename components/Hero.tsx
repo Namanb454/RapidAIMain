@@ -1,32 +1,65 @@
 import React, { useState } from 'react'
-import { Button } from './ui/button'
-import { ArrowRight, Play, Sparkles } from 'lucide-react'
-import { Input } from './ui/input'
-import Prompt from './Prompt'
+import Image from 'next/image'
+
+import { motion } from 'framer-motion'
 
 const Hero = () => {
-    const [prompt, setPrompt] = useState('');
+    const containerVariants = {
+        hidden: { y: 200, opacity: 0 },
+        show: {
+            opacity: 1,
+            y: 0,
+            transition: {
+                staggerChildren: 0.3, // Delay between children
+                duration: 0.6
+            },
+        },
+    };
 
-    const examplePrompts = [
-        "Create an explainer video about renewable energy using vibrant animations",
-        "Make a product showcase video for a new smartwatch with dynamic transitions",
-        "Generate a travel montage video of Paris with smooth camera movements and upbeat narration",
-        "Create a cooking tutorial for making pasta with step-by-step visual instructions"
-    ];
-
-    const handleExampleClick = (text: string) => {
-        setPrompt(text);
+    const itemVariants = {
+        hidden: { opacity: 0, y: 20 },
+        show: { opacity: 1, y: 0 },
     };
 
     return (
-        <section className="pt-32 pb-20 px-4 md:px-6 lg:px-8 max-w-7xl mx-auto">
-            <div className="grid lg:grid-cols-2 gap-12 items-center">
-                <div>
-                    <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6">
+        <section className="pt-32 pb-20 px-4 md:px-6 lg:px-8  mx-auto h-screen overflow-hidden">
+            <motion.div
+                variants={containerVariants}
+                initial="hidden"
+                animate="show"
+                className="grid lg:grid-cols2 gap-12 items-center text-center">
+                <div className='space-y-10 relative'>
+                    <motion.h1
+                        variants={itemVariants}
+                        className="text-3xl md:text-5xl lg:text-6xl font-bold mb-6">
                         Transform Text into
-                        <span className="bg-gradient-to-r from-indigo-400 to-purple-500 bg-clip-text text-transparent"> Engaging Videos</span>
-                    </h1>
-                    <p className="text-xl text-neutral-300 mb-8">
+                        <span className="bg-gradient-to-r from-indigo-300 to-purple-500 bg-clip-text text-transparent"> Engaging Videos</span>
+                    </motion.h1>
+                    <motion.div
+                        variants={itemVariants}
+                        className='relative px-5 md:max-w-7xl xl:w-full min-h-screen mx-auto z-10'>
+                        {/* shadow-[0px_4px_16px_rgba(17,17,26,0.1),_0px_8px_24px_rgba(17,17,26,0.1),_0px_16px_56px_rgba(17,17,26,0.1)] shadow-indigo-500 */}
+                        <Image
+                            className='md:block hidden w-full rounded-3xl'
+                            src='create-video.png'
+                            width={100}
+                            height={100}
+                            alt='Create Video'
+                        />
+                        <Image
+                            className='md:hidden block w-full rounded-3xl object-'
+                            src='create-video0.png'
+                            width={100}
+                            height={100}
+                            alt='Create Video'
+                        />
+                    </motion.div>
+                    <motion.div
+                        variants={itemVariants}
+                        className='absolute inset-y-5 rounded-3xl w-full animate-tilt h-full bg-gradient-to-r from-indigo-50 to-indigo-500 blur-3xl'>
+                    </motion.div>
+
+                    {/* <p className="text-xl text-neutral-300 mb-8">
                         Generate professional videos with custom narration from just a text prompt. Edit, refine, and export in minutes.
                     </p>
                     <div className="flex flex-col sm:flex-row gap-4 mb-8">
@@ -44,9 +77,9 @@ const Hero = () => {
                             ))}
                         </div>
                         <p>Trusted by 2,000+ content creators worldwide</p>
-                    </div>
+                    </div> */}
                 </div>
-                <div className="relative">
+                {/* <div className="relative">
                     <div className="bg-gradient-to-r from-indigo-500/20 to-purple-500/20 rounded-xl p-1">
                         <div className="bg-neutral-900 rounded-lg p-6">
                             <h3 className="text-lg font-medium mb-4">Generate Your Video</h3>
@@ -76,8 +109,8 @@ const Hero = () => {
                     </div>
                     <div className="absolute -bottom-4 -right-4 w-64 h-64 bg-indigo-500/30 rounded-full blur-3xl -z-10"></div>
                     <div className="absolute -top-4 -left-4 w-64 h-64 bg-purple-500/20 rounded-full blur-3xl -z-10"></div>
-                </div>
-            </div>
+                </div> */}
+            </motion.div>
         </section>
     )
 }

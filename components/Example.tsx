@@ -31,7 +31,7 @@ const Example = () => {
                                         onMouseOver={(e: any) => e.target.play()}
                                         onMouseOut={(e: any) => e.target.pause()}
                                     >
-                                        <source src="/Flint.mp4" />
+                                        <source src="/" />
                                         Your browser does not support the video tag.
                                     </video>
 

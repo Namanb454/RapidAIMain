@@ -33,7 +33,7 @@ export default function VideoPreview({
               Your browser does not support the video tag.
             </video>
           ) : generated ? (
-            <div className="flex h-full items-center justify-center bg-gradient-to-br from-purple-500 to-blue-500 p-4 text-white">
+            <div className="flex h-full items-center justify-center bg-gradient-to-br from-purple-500 to-indigo-500 p-4 text-white">
               <p className="text-center">Video generated! URL: {videoUrl}</p>
             </div>
           ) : (
