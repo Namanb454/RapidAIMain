@@ -34,6 +34,46 @@ export interface Database {
           },
         ]
       }
+      videos: {
+        Row: {
+          id: string
+          created_at: string
+          user_id: string
+          video_url: string
+          title: string | null
+          description: string | null
+          duration: string
+          status: string
+        }
+        Insert: {
+          id?: string
+          created_at?: string
+          user_id: string
+          video_url: string
+          title?: string | null
+          description?: string | null
+          duration: string
+          status: string
+        }
+        Update: {
+          id?: string
+          created_at?: string
+          user_id?: string
+          video_url?: string
+          title?: string | null
+          description?: string | null
+          duration?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "videos_user_id_fkey"
+            columns: ["user_id"]
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
     }
     Views: {
       [_ in never]: never

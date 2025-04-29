@@ -1,9 +1,52 @@
 'use server'
 
+import { createClient } from '@/utils/supabase/server'
+import { Database } from '@/types/supabase'
+
 interface JobStatusResponse {
     status: string;
     video_url?: string;
 }
+
+export async function storeVideoInSupabase(
+  videoUrl: string,
+  userId: string,
+  duration: string,
+  title?: string,
+  description?: string
+): Promise<void> {
+  const supabase = await createClient()
+  
+  try {
+    const { data, error } = await supabase
+      .from('videos')
+      .insert({
+        user_id: userId,
+        video_url: videoUrl,
+        duration,
+        title,
+        description,
+        status: 'completed'
+      })
+      .select()
+
+    if (error) {
+      console.error('Supabase error details:', {
+        code: error.code,
+        message: error.message,
+        details: error.details,
+        hint: error.hint
+      })
+      throw new Error(`Failed to store video in Supabase: ${error.message}`)
+    }
+
+    console.log('Successfully stored video:', data)
+  } catch (error) {
+    console.error('Error in storeVideoInSupabase:', error)
+    throw error
+  }
+}
+
 export async function generateNarration(scriptPrompt: string, timeLimit: string): Promise<any> {
     const response = await fetch(`${process.env.NEXT_PUBLIC_RaILWAY_API_KEY}/generate-narration/`, {
         method: "POST",
@@ -55,11 +98,10 @@ export async function checkJobStatus(jobId: string): Promise<JobStatusResponse> 
         job_id: jobId
     });
 
-    const response: any = await fetch(`${process.env.NEXT_PUBLIC_RaILWAY_API_KEY}/job-status?${params.toString()}`, {
+    const response: any = await fetch(`${process.env.NEXT_PUBLIC_STATUS_API_KEY}/job-status?${params.toString()}`, {
         method: 'GET',
         headers: {
             "Content-Type": "application/json",
-            "ngrok-skip-browser-warning": "6024",
         },
     });
 

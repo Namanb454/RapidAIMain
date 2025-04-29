@@ -14,15 +14,15 @@ export default function VideoPreview({
   onRegenerate
 }: VideoPreviewProps): JSX.Element {
   return (
-    <Card className="md:col-span-1 bg-neutral-950 text-white border-neutral-800 rounded-3xl">
+    <Card className="md:col-span-1 bg-neutral- text-white border-neutral-800 rounded-3xl border-none shadow-md shadow-neutral-500">
       <CardHeader>
         <CardTitle>Preview</CardTitle>
         <CardDescription>Your generated video will appear here</CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="aspect-video overflow-hidden rounded-3xl bg-muted bg-neutral-950">
+        <div className="aspect-square overflow-hidden rounded-3xl">
           {generated && videoUrl ? (
-            <video className="h-full w-full object-cover bg-neutral-950" controls preload="none">
+            <video className="h-full w-full object-contain aspect-[3/4]" controls preload="none">
               <source src={videoUrl} type="video/mp4" />
               {/* <track
               src="/path/to/captions.vtt"

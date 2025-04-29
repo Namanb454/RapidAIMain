@@ -40,13 +40,13 @@ export interface VideoFormProps {
   textareaPlaceholder: string
   textareaValue: string
   onTextareaChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void
-  duration: DurationOption
-  setDuration: (value: DurationOption) => void
-  voice: VoiceOption
-  setVoice: (value: VoiceOption) => void
-  error: string
-  onSubmit: () => void
-  isSubmitDisabled: boolean
+  duration?: DurationOption
+  setDuration?: (value: DurationOption) => void
+  voice?: VoiceOption
+  setVoice?: (value: VoiceOption) => void
+  error?: string
+  onSubmit?: () => void
+  isSubmitDisabled?: boolean
   loading: boolean
   title: string
   description: string

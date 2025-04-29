@@ -16,33 +16,33 @@ export default function VideoForm({
   textareaPlaceholder,
   textareaValue,
   onTextareaChange,
-  duration,
-  setDuration,
-  voice,
-  setVoice,
-  error,
+  // duration,
+  // setDuration,
+  // voice,
+  // setVoice,
+  // error,
   onSubmit,
   isSubmitDisabled,
   loading,
   title,
   description
 }: VideoFormProps): JSX.Element {
-  const voices: VoiceOption[] = ["alloy", "echo", "fable", "onyx", "nova", "shimmer"]
-  const durations: DurationOption[] = ["30-45", "45-60", "60-90"]
-  const musics = [
-    {
-        'music': "BladeRunner",
-    },
-    {
-        'music': "Snowfall",
-    },
-    {
-        'music': "Another Love",
-    },
-    {
-        'music': "Else-Paris",
-    },
-]
+  // const voices: VoiceOption[] = ["alloy", "echo", "fable", "onyx", "nova", "shimmer"]
+  // const durations: DurationOption[] = ["30-45", "45-60", "60-90"].
+  //   const musics = [
+  //     {
+  //         'music': "BladeRunner",
+  //     },
+  //     {
+  //         'music': "Snowfall",
+  //     },
+  //     {
+  //         'music': "Another Love",
+  //     },
+  //     {
+  //         'music': "Else-Paris",
+  //     },
+  // ]
   return (
     <Card className="md:col-span-1 bg-neutral-950 text-white border-neutral-800 rounded-3xl">
       <CardHeader>
@@ -73,7 +73,7 @@ export default function VideoForm({
                         )
                     })}
                 </div> */}
-                {/* <div className="space-y-2">
+        {/* <div className="space-y-2">
                     <Label htmlFor="voice" className="text-lg flex items-center gap-2">
                         <Speech className="bg-indigo-600 p-2 rounded-lg w-8 h-8" />
                         Voice</Label>
@@ -90,7 +90,7 @@ export default function VideoForm({
                         </SelectContent>
                     </Select>
                 </div> */}
-                {/* <div className="space-y-2">
+        {/* <div className="space-y-2">
                     <Label htmlFor="voice" className="text-lg flex items-center gap-2">
                         <Speech className="bg-indigo-600 p-2 rounded-lg w-8 h-8" />
                         Voice</Label>
@@ -129,7 +129,7 @@ export default function VideoForm({
                     <p className="text-sm text-red-500">{error}</p>
                 )} */}
       </CardContent>
-      <CardFooter>
+      {/* <CardFooter>
         <Button onClick={onSubmit} disabled={isSubmitDisabled} className="w-full gap-2 bg-indigo-600 hover:bg-indigo-700 rounded-3xl">
           {loading ? (
             <>
@@ -139,11 +139,11 @@ export default function VideoForm({
           ) : (
             <>
               <Wand2 className="h-4 w-4" />
-              Generate Video
+              Generate Narration
             </>
           )}
         </Button>
-      </CardFooter>
+      </CardFooter> */}
     </Card>
   )
 }

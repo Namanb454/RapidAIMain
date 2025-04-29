@@ -41,8 +41,8 @@ export default function CreateVideoPage(): JSX.Element {
 
       <Tabs defaultValue="text-to-video" className="w-full">
         <TabsList className="grid w-full max-w-xs grid-cols-2 bg-neutral-800 rounded-3xl">
-          <TabsTrigger className="data-[state=active]:bg-neutral-100 rounded-3xl" value="text-to-video">Text to Video</TabsTrigger>
-          <TabsTrigger className="data-[state=active]:bg-neutral-100 rounded-3xl" value="narration-to-video">Narration to Video</TabsTrigger>
+          <TabsTrigger className="data-[state=active]:bg-neutral-100 rounded-3xl" value="text-to-video">Generate AI Script</TabsTrigger>
+          <TabsTrigger className="data-[state=active]:bg-neutral-100 rounded-3xl" value="narration-to-video">Own Script</TabsTrigger>
         </TabsList>
         <TabsContent value="text-to-video" className="mt-4">
           <TextToVideoTab {...sharedProps} />

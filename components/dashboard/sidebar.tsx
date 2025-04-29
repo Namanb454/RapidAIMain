@@ -13,7 +13,7 @@ interface SidebarProps {
 }
 
 export function Sidebar({ className }: SidebarProps) {
-  const router  = useRouter();
+  const router = useRouter();
   const pathname = usePathname()
   const { signOut } = useAuth()
   const [mobileOpen, setMobileOpen] = useState(false)
@@ -37,16 +37,16 @@ export function Sidebar({ className }: SidebarProps) {
       href: "/dashboard/create",
       icon: Video,
     },
-    {
-      name: "History",
-      href: "/dashboard/history",
-      icon: History,
-    },
-    {
-      name: "Settings",
-      href: "/dashboard/settings",
-      icon: Settings,
-    },
+    // {
+    //   name: "History",
+    //   href: "/dashboard/history",
+    //   icon: History,
+    // },
+    // {
+    //   name: "Settings",
+    //   href: "/dashboard/settings",
+    //   icon: Settings,
+    // },
   ]
 
   const handleSignOut = async () => {
@@ -57,9 +57,15 @@ export function Sidebar({ className }: SidebarProps) {
   return (
     <>
       {/* Mobile menu button */}
-      <Button variant="ghost" size="icon" className="md:hidden fixed top-4 right-4 z-50" onClick={toggleMobileMenu}>
-        {mobileOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-      </Button>
+      <div className="fixed md:hidden text-white w-full flex justify-between h-14 items-center border-b border-neutral-800 px-4">
+        <Link href="/dashboard" className="flex items-center gap-2 font-bold">
+          <Video className="h-5 w-5" />
+          <span>Rapid AI</span>
+        </Link>
+        <Button variant="ghost" size="icon" className="md:hidden  text-white " onClick={toggleMobileMenu}>
+          {mobileOpen ? <X className="h-6 w-6 text-black" /> : <Menu className="h-6 w-6" />}
+        </Button>
+      </div>
 
       {/* Sidebar for desktop */}
       <div className={cn("hidden md:flex h-screen w-64 flex-col border-r border-neutral-800 bg-neutral-950 text-white fixed", className)}>
@@ -97,14 +103,14 @@ export function Sidebar({ className }: SidebarProps) {
 
       {/* Mobile sidebar */}
       {mobileOpen && (
-        <div className="fixed inset-0 z-40 bg-background md:hidden">
+        <div className="fixed inset-0 z-40 bg-transparent backdrop-blur-lg md:hidden text-white">
           <div className="flex h-14 items-center border-b px-4">
-            <Link href="/dashboard" className="flex items-center gap-2 font-bold" onClick={closeMobileMenu}>
+            <Link href="/dashboard" className="flex items-center gap-2 font-bold">
               <Video className="h-5 w-5" />
-              <span>AI Video Generator</span>
+              <span>Rapid AI</span>
             </Link>
           </div>
-          <nav className="grid gap-1 p-4">
+          <nav className="grid gap-4 p-4">
             {navItems.map((item) => (
               <Link
                 key={item.href}
@@ -112,14 +118,14 @@ export function Sidebar({ className }: SidebarProps) {
                 onClick={closeMobileMenu}
                 className={cn(
                   "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground",
-                  pathname === item.href ? "bg-accent text-accent-foreground" : "transparent",
+                  pathname === item.href ? "bg-accent text-accent-foreground" : "transparent border",
                 )}
               >
                 <item.icon className="h-4 w-4" />
                 {item.name}
               </Link>
             ))}
-            <Button variant="outline" className="mt-4 w-full justify-start gap-2" onClick={handleSignOut}>
+            <Button variant="outline" className="mt-4 w-full justify-start gap-2 text-white border bg-transparent" onClick={handleSignOut}>
               <LogOut className="h-4 w-4" />
               Sign Out
             </Button>

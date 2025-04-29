@@ -6,8 +6,14 @@ import { SharedVideoProps } from "@/types/video"
 import VideoForm from "./VideoForm"
 import VideoPreview from "./VideoPreview"
 import { generateVideoFromNarration } from "@/app/actions/narration-actions"
-import { checkJobStatus } from "@/app/actions/video-actions"
+import { checkJobStatus, storeVideoInSupabase } from "@/app/actions/video-actions"
+import { useAuth } from "@/context/auth-context"
 import VideoFields from "./VideoFields"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog"
+import { Button } from "@/components/ui/button"
+import { Textarea } from "@/components/ui/textarea"
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription, DrawerFooter, DrawerClose, DrawerTrigger } from "@/components/ui/drawer"
+import { AlertCircle, Loader2, Video, Wand2 } from "lucide-react"
 
 // Character limits based on duration ranges
 const DURATION_CHAR_LIMITS: Record<string, number> = {
@@ -36,9 +42,14 @@ export default function NarrationToVideoTab({
   loading,
   setLoading
 }: SharedVideoProps): JSX.Element {
+  const { user } = useAuth()
   const [script, setScript] = useState<string>("")
   const [charCount, setCharCount] = useState<number>(0)
   const [charLimit, setCharLimit] = useState<number>(DURATION_CHAR_LIMITS[duration] || 750)
+  const [showNarrationEditor, setShowNarrationEditor] = useState<boolean>(false)
+  const [showNarrationWarning, setShowNarrationWarning] = useState<boolean>(false)
+  const [showPreviewDrawer, setShowPreviewDrawer] = useState<boolean>(false)
+  const [showPreviewWarning, setShowPreviewWarning] = useState<boolean>(false)
 
   // Update character limit when duration changes
   useEffect(() => {
@@ -88,7 +99,7 @@ export default function NarrationToVideoTab({
   };
 
   const handleGenerateVideo = async (): Promise<void> => {
-    if (!script) return
+    if (!script || !user) return
 
     setLoading(true)
     setError("")
@@ -102,12 +113,29 @@ export default function NarrationToVideoTab({
       // If the API has shifted to using job IDs like the TextToVideo endpoint
       if (videoData.job_id) {
         const finalVideoUrl = await pollJobStatus(videoData.job_id);
+        // Store video in Supabase
+        await storeVideoInSupabase(
+          finalVideoUrl,
+          user.id,
+          duration,
+          script.substring(0, 50), // Using first 50 chars of script as title
+          script // Using full script as description
+        );
       } else {
         // Use the direct URL if the API still provides it
         setVideoUrl(videoData.url || "");
+        // Store video in Supabase
+        await storeVideoInSupabase(
+          videoData.url,
+          user.id,
+          duration,
+          script.substring(0, 50),
+          script
+        );
       }
 
       setGenerated(true);
+      setShowPreviewDrawer(true);
     }
     catch (error) {
       console.error("Error generating video:", error);
@@ -115,6 +143,28 @@ export default function NarrationToVideoTab({
     } finally {
       setLoading(false);
     }
+  }
+
+  const handleNarrationDialogClose = (open: boolean) => {
+    if (!open && showNarrationEditor) {
+      setShowNarrationWarning(true);
+    }
+  }
+
+  const confirmNarrationClose = () => {
+    setShowNarrationEditor(false);
+    setShowNarrationWarning(false);
+  }
+
+  const handlePreviewDrawerClose = (open: boolean) => {
+    if (!open && showPreviewDrawer) {
+      setShowPreviewWarning(true);
+    }
+  }
+
+  const confirmPreviewClose = () => {
+    setShowPreviewDrawer(false);
+    setShowPreviewWarning(false);
   }
 
   // Get approximate word count for display
@@ -134,7 +184,7 @@ export default function NarrationToVideoTab({
   };
 
   return (
-    <div className="grid gap-6 md:grid-cols-2">
+    <div className="md:grid gap-6 md:grid-cols-2 relative md:space-y-0 space-y-5">
       <VideoForm
         textareaLabel="Enter your narration script"
         textareaPlaceholder="Enter your full narration script here..."
@@ -165,16 +215,90 @@ export default function NarrationToVideoTab({
         onSubmit={handleGenerateVideo}
         isSubmitDisabled={!script || loading}
         loading={loading}
-        title="Video Description"
-        description={`Narration script (${charCount}/${charLimit} characters, ~${getApproxWordCount()}/${getWordLimit()} words)`}
+        title="Music Selection"
+        description="Select your best music to add in background"
       />
 
-      <VideoPreview
-        generated={generated}
-        videoUrl={videoUrl}
-        loading={loading}
-        onRegenerate={handleGenerateVideo}
-      />
+      {generated ? (
+        <div className="rounded-full w-fit mx-auto col-span-2">
+          <Button
+            disabled={loading}
+            className="rounded-full p-4 bg-green-600 shadow-sm shadow-neutral-500 animate-pulse"
+            onClick={() => setShowPreviewDrawer(true)}
+          >
+            <Video className="h-5 w-5" />
+            <span className="ml-2">View Video</span>
+          </Button>
+        </div>
+      ) : (
+        <div className="rounded-full w-fit mx-auto col-span-2">
+          <Button onClick={handleGenerateVideo} disabled={!script || loading} className="w-fit gap-2 bg-indigo-600 hover:bg-indigo-700 rounded-3xl">
+            {loading ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Generating...
+              </>
+            ) : (
+              <>
+                <Wand2 className="h-4 w-4" />
+                Generate Video
+              </>
+            )}
+          </Button>
+        </div>
+      )}
+
+      {/* Narration Editor Dialog */}
+      <Dialog open={showNarrationEditor} onOpenChange={handleNarrationDialogClose}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Edit Narration</DialogTitle>
+            <DialogDescription>
+              Make changes to your narration script here.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <Textarea
+              value={script}
+              onChange={handleScriptChange}
+              placeholder="Enter your narration script..."
+              className="min-h-[200px]"
+            />
+            <div className="text-sm text-muted-foreground">
+              {charCount}/{charLimit} characters (~{getApproxWordCount()}/{getWordLimit()} words)
+            </div>
+          </div>
+          <DialogFooter>
+            <Button onClick={confirmNarrationClose}>Done</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Preview Drawer */}
+      {videoUrl && (
+        <Drawer open={showPreviewDrawer} onOpenChange={handlePreviewDrawerClose}>
+          <DrawerContent className="text-white bg-transparent backdrop-blur-lg border-none shadow-md shadow-neutral-500">
+            <div className="mx-auto w-full max-w-2xl items-center">
+
+              <div className="p-4">
+                <VideoPreview
+                  generated={generated}
+                  videoUrl={videoUrl}
+                  loading={loading}
+                  onRegenerate={handleGenerateVideo}
+                />
+              </div>
+              <DrawerFooter>
+                <DrawerClose asChild>
+                  <Button onClick={confirmPreviewClose} className="gap-2 bg-transparent rounded-3xl bg-neutral-900" variant="outline">
+                    Close
+                  </Button>
+                </DrawerClose>
+              </DrawerFooter>
+            </div>
+          </DrawerContent>
+        </Drawer>
+      )}
     </div>
   )
 }
