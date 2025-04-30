@@ -1,6 +1,5 @@
 'use client';
 
-import { FileEdit, Video, Sparkles, Zap, Globe, Layout } from 'lucide-react';
 import FeatureCard from '@/components/FeatureCard';
 import TestimonialCard from '@/components/TestimonialCard';
 import PricingPlan from '@/components/PricingPlan';
@@ -9,7 +8,7 @@ import HowItWorks from '@/components/HowItWorks';
 import Example from '@/components/Example';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
-import { easeInOut, motion, scale } from 'framer-motion';
+import { easeInOut, motion} from 'framer-motion';
 import { FeatureData } from './data';
 
 export default function Home() {
