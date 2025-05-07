@@ -6,7 +6,7 @@ import { SharedVideoProps } from "@/types/video"
 import VideoForm from "./VideoForm"
 import VideoPreview from "./VideoPreview"
 import { generateVideoFromNarration } from "@/app/actions/narration-actions"
-import { checkJobStatus, storeVideoInSupabase } from "@/app/actions/video-actions"
+import { CaptionVideo, RawCaptionVideo, storeVideoInSupabase } from "@/app/actions/video-actions"
 import { useAuth } from "@/context/auth-context"
 import VideoFields from "./VideoFields"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog"
@@ -50,6 +50,7 @@ export default function NarrationToVideoTab({
   const [showNarrationWarning, setShowNarrationWarning] = useState<boolean>(false)
   const [showPreviewDrawer, setShowPreviewDrawer] = useState<boolean>(false)
   const [showPreviewWarning, setShowPreviewWarning] = useState<boolean>(false)
+  const [playableVideoUrl, setPlayableVideoUrl] = useState<string>("")
 
   // Update character limit when duration changes
   useEffect(() => {
@@ -72,31 +73,60 @@ export default function NarrationToVideoTab({
   };
 
   const pollJobStatus = async (jobId: string): Promise<string> => {
-    const POLLING_INTERVAL = 4000; // 4 seconds
+    const POLLING_INTERVAL = 4000 // 4 seconds
 
     return new Promise((resolve, reject) => {
       const checkStatus = async () => {
         try {
-          const data: any = await checkJobStatus(jobId);
-          console.log("Job status check:", data);
+          const data: any = await RawCaptionVideo(jobId)
+          console.log("Raw Video:", data)
 
-          if (data.status === "completed" && data?.output_path) {
-            console.log(data?.output_path);
-            setVideoUrl(data?.output_path);
-            resolve(data?.output_path);
-            return;
+          if (data) {
+            console.log("Video URL: ", data)
+            setVideoUrl(data)
+            setPlayableVideoUrl(data.raw_video_url)
+            handleCaptionVideo(jobId)
+            resolve(data)
+            return
           } else {
-            setTimeout(checkStatus, POLLING_INTERVAL);
-            return;
+            setTimeout(checkStatus, POLLING_INTERVAL)
+            return
           }
         } catch (err) {
-          reject(err);
+          reject(err)
         }
-      };
+      }
 
-      checkStatus();
-    });
-  };
+      checkStatus()
+    })
+  }
+
+  const handleCaptionVideo = async (jobId: string): Promise<void> => {
+    const POLLING_INTERVAL = 4000 // 4 seconds
+
+    return new Promise((resolve, reject) => {
+      const checkStatus = async () => {
+        try {
+          const captionedVideo: any = await CaptionVideo(jobId)
+          console.log("Captioned Video:", captionedVideo)
+
+          if (captionedVideo) {
+            console.log("Video URL: ", captionedVideo)
+            setVideoUrl(captionedVideo)
+            setPlayableVideoUrl(captionedVideo.captioned_video_url)
+            resolve(captionedVideo)
+            return
+          } else {
+            setTimeout(checkStatus, POLLING_INTERVAL)
+            return
+          }
+        } catch (err) {
+          reject(err)
+        }
+      }
+      checkStatus()
+    })
+  }
 
   const handleGenerateVideo = async (): Promise<void> => {
     if (!script || !user) return
@@ -282,6 +312,7 @@ export default function NarrationToVideoTab({
 
               <div className="p-4">
                 <VideoPreview
+                download={playableVideoUrl}
                   generated={generated}
                   videoUrl={videoUrl}
                   loading={loading}

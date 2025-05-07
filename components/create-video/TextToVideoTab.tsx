@@ -4,7 +4,7 @@ import { JSX, useState } from "react"
 import { SharedVideoProps } from "@/types/video"
 import VideoForm from "./VideoForm"
 import VideoPreview from "./VideoPreview"
-import { generateNarration, generateVideo, checkJobStatus, storeVideoInSupabase } from "@/app/actions/video-actions"
+import { CaptionVideo, generateNarration, generateVideo, RawCaptionVideo, storeVideoInSupabase } from "@/app/actions/video-actions"
 import VideoFields from "./VideoFields"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
@@ -42,6 +42,7 @@ export default function TextToVideoTab({
   const [showNarrationWarning, setShowNarrationWarning] = useState<boolean>(false)
   const [showPreviewDrawer, setShowPreviewDrawer] = useState<boolean>(false)
   const [showPreviewWarning, setShowPreviewWarning] = useState<boolean>(false)
+  const [playableVideoUrl, setPlayableVideoUrl] = useState<string>("")
 
   const pollJobStatus = async (jobId: string): Promise<string> => {
     const POLLING_INTERVAL = 4000 // 4 seconds
@@ -49,13 +50,14 @@ export default function TextToVideoTab({
     return new Promise((resolve, reject) => {
       const checkStatus = async () => {
         try {
-          const data: any = await checkJobStatus(jobId)
-          console.log("Job status check:", data)
+          const data: any = await RawCaptionVideo("1f85d093-0494-43af-994f-bebbbbdf63fa")
+          console.log("Raw Video:", data?.raw_video_url)
 
-          if (data.status === "completed" && data?.output_path) {
-            console.log("Video URL: ", data?.output_path)
-            setVideoUrl(data?.output_path)
-            resolve(data?.output_path)
+          if (data?.raw_video_url) {
+            setVideoUrl(data)
+            setPlayableVideoUrl(data.raw_video_url)
+            handleCaptionVideo(jobId)
+            resolve(data)
             return
           } else {
             setTimeout(checkStatus, POLLING_INTERVAL)
@@ -66,6 +68,33 @@ export default function TextToVideoTab({
         }
       }
 
+      checkStatus()
+    })
+  }
+
+  const handleCaptionVideo = async (jobId: string): Promise<void> => {
+    const POLLING_INTERVAL = 4000 // 4 seconds
+
+    return new Promise((resolve, reject) => {
+      const checkStatus = async () => {
+        try {
+          const captionedVideo: any = await CaptionVideo("1f85d093-0494-43af-994f-bebbbbdf63fa")
+          console.log("Captioned Video:", captionedVideo?.captioned_video_url)
+
+          if (captionedVideo?.captioned_video_url) {
+            console.log("Video URL: ", captionedVideo)
+            setVideoUrl(captionedVideo)
+            setPlayableVideoUrl(captionedVideo.captioned_video_url)
+            resolve(captionedVideo)
+            return
+          } else {
+            setTimeout(checkStatus, POLLING_INTERVAL)
+            return
+          }
+        } catch (err) {
+          reject(err)
+        }
+      }
       checkStatus()
     })
   }
@@ -295,6 +324,7 @@ export default function TextToVideoTab({
               </DrawerHeader>
               <div className="p-4">
                 <VideoPreview
+                  download={playableVideoUrl}
                   generated={generated}
                   videoUrl={videoUrl}
                   loading={loading}

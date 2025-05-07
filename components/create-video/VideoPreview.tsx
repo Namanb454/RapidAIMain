@@ -9,6 +9,7 @@ import { JSX } from "react"
 
 export default function VideoPreview({
   generated,
+  download,
   videoUrl,
   loading,
   onRegenerate
@@ -21,7 +22,7 @@ export default function VideoPreview({
       </CardHeader>
       <CardContent>
         <div className="aspect-square overflow-hidden rounded-3xl">
-          {generated && videoUrl ? (
+          {videoUrl ? (
             <video className="h-full w-full object-contain aspect-[3/4]" controls preload="none">
               <source src={videoUrl} type="video/mp4" />
               {/* <track
@@ -50,9 +51,9 @@ export default function VideoPreview({
         {generated && (
           <>
             <Button variant="outline" className="bg-indigo-600 hover:bg-indigo-700 rounded-3xl" onClick={onRegenerate}>Regenerate</Button>
-            {videoUrl && (
+            {download && (
               <Button asChild>
-                <a href={videoUrl} download target="_blank" rel="noopener noreferrer"
+                <a href={download} download target="_blank" rel="noopener noreferrer"
                   className="bg-indigo-600 hover:bg-indigo-700 rounded-3xl">Download</a>
               </Button>
             )}

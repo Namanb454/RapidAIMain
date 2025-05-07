@@ -53,6 +53,7 @@ export interface VideoFormProps {
 }
 
 export interface VideoPreviewProps {
+  download: string
   generated: boolean
   videoUrl: string
   loading: boolean

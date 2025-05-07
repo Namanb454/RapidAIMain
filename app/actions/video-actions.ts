@@ -9,42 +9,42 @@ interface JobStatusResponse {
 }
 
 export async function storeVideoInSupabase(
-  videoUrl: string,
-  userId: string,
-  duration: string,
-  title?: string,
-  description?: string
+    videoUrl: string,
+    userId: string,
+    duration: string,
+    title?: string,
+    description?: string
 ): Promise<void> {
-  const supabase = await createClient()
-  
-  try {
-    const { data, error } = await supabase
-      .from('videos')
-      .insert({
-        user_id: userId,
-        video_url: videoUrl,
-        duration,
-        title,
-        description,
-        status: 'completed'
-      })
-      .select()
+    const supabase = await createClient()
 
-    if (error) {
-      console.error('Supabase error details:', {
-        code: error.code,
-        message: error.message,
-        details: error.details,
-        hint: error.hint
-      })
-      throw new Error(`Failed to store video in Supabase: ${error.message}`)
+    try {
+        const { data, error } = await supabase
+            .from('videos')
+            .insert({
+                user_id: userId,
+                video_url: videoUrl,
+                duration,
+                title,
+                description,
+                status: 'completed'
+            })
+            .select()
+
+        if (error) {
+            console.error('Supabase error details:', {
+                code: error.code,
+                message: error.message,
+                details: error.details,
+                hint: error.hint
+            })
+            throw new Error(`Failed to store video in Supabase: ${error.message}`)
+        }
+
+        console.log('Successfully stored video:', data)
+    } catch (error) {
+        console.error('Error in storeVideoInSupabase:', error)
+        throw error
     }
-
-    console.log('Successfully stored video:', data)
-  } catch (error) {
-    console.error('Error in storeVideoInSupabase:', error)
-    throw error
-  }
 }
 
 export async function generateNarration(scriptPrompt: string, timeLimit: string): Promise<any> {
@@ -93,21 +93,48 @@ export async function generateVideo(narrationData: any, voice: string, timeLimit
 /**
  * Checks the status of a job and returns the video URL when completed
  */
-export async function checkJobStatus(jobId: string): Promise<JobStatusResponse> {
+export async function RawCaptionVideo(jobId: string): Promise<JobStatusResponse> {
     const params = new URLSearchParams({
         job_id: jobId
     });
 
-    const response: any = await fetch(`${process.env.NEXT_PUBLIC_STATUS_API_KEY}/job-status?${params.toString()}`, {
+    const response: any = await fetch(`${process.env.NEXT_PUBLIC_STATUS_API_KEY}/raw-video-url-status?${params.toString()}`, {
         method: 'GET',
         headers: {
             "Content-Type": "application/json",
         },
     });
 
-    if (response?.status == "completed") {
-        return response.json();
+    // if (response?.status == "completed") {
+    //     return response.json();
+    // }
+
+    if (response?.status == "failed") {
+        throw new Error(`Failed to get job status. Status: ${response.status}`);
     }
+
+    if (!response.ok) {
+        throw new Error(`Failed to get job status. Status: ${response.status}`);
+    }
+
+    return response.json();
+}
+
+export async function CaptionVideo(jobId: string): Promise<JobStatusResponse> {
+    const params = new URLSearchParams({
+        job_id: jobId
+    });
+
+    const response: any = await fetch(`${process.env.NEXT_PUBLIC_STATUS_API_KEY}/captioned-video-status?${params.toString()}`, {
+        method: 'GET',
+        headers: {
+            "Content-Type": "application/json",
+        },
+    });
+
+    // if (response?.status == "completed") {
+    //     return response.json();
+    // }
 
     if (response?.status == "failed") {
         throw new Error(`Failed to get job status. Status: ${response.status}`);
