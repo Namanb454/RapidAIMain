@@ -15,6 +15,8 @@ export interface VideoApiResponse {
 export interface JobStatusResponse {
   status: string;
   video_url?: string;
+  raw_video_url?: string;
+  captioned_video_url?: string;
   output_path?: string;
   error?: string;
 }

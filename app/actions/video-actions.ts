@@ -6,6 +6,8 @@ import { Database } from '@/types/supabase'
 interface JobStatusResponse {
     status: string;
     video_url?: string;
+    raw_video_url?: string;
+    captioned_video_url?: string;
 }
 
 export async function storeVideoInSupabase(

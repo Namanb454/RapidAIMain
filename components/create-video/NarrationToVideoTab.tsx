@@ -12,7 +12,7 @@ import VideoFields from "./VideoFields"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
-import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription, DrawerFooter, DrawerClose, DrawerTrigger } from "@/components/ui/drawer"
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription, DrawerFooter, DrawerClose } from "@/components/ui/drawer"
 import { AlertCircle, Loader2, Video, Wand2 } from "lucide-react"
 
 // Character limits based on duration ranges
@@ -22,12 +22,6 @@ const DURATION_CHAR_LIMITS: Record<string, number> = {
   "60-90": 1400  // 60-90 sec: ~225 words, ~1400 characters max
 };
 
-// Function to extract the upper bound of the duration range for API calls
-const getMaxDuration = (durationRange: string): number => {
-  const upperBound = durationRange.split("-")[1];
-  return parseInt(upperBound, 10);
-};
-
 export default function NarrationToVideoTab({
   duration,
   setDuration,
@@ -35,8 +29,6 @@ export default function NarrationToVideoTab({
   setVoice,
   generated,
   setGenerated,
-  videoUrl,
-  setVideoUrl,
   error,
   setError,
   loading,
@@ -51,6 +43,7 @@ export default function NarrationToVideoTab({
   const [showPreviewDrawer, setShowPreviewDrawer] = useState<boolean>(false)
   const [showPreviewWarning, setShowPreviewWarning] = useState<boolean>(false)
   const [playableVideoUrl, setPlayableVideoUrl] = useState<string>("")
+  const [videoUrl, setVideoUrl] = useState<string>("")
 
   // Update character limit when duration changes
   useEffect(() => {
@@ -72,7 +65,7 @@ export default function NarrationToVideoTab({
     }
   };
 
-  const pollJobStatus = async (jobId: string): Promise<string> => {
+  const pollJobStatus = async (jobId: string): Promise<any> => {
     const POLLING_INTERVAL = 4000 // 4 seconds
     const MAX_POLLING_TIME = 3 * 60 * 1000 // 3 minutes in milliseconds
     const startTime = Date.now()
@@ -87,19 +80,25 @@ export default function NarrationToVideoTab({
             return
           }
 
-          const data: any = await RawCaptionVideo(jobId)
+          const data = await RawCaptionVideo(jobId)
           console.log("Raw Video Status:", data.status)
 
-          if (data.status == "completed") {
-            console.log("Video URL: ", data.raw_video_url)
-            setVideoUrl(data.raw_video_url)
-            setPlayableVideoUrl(data.raw_video_url)
-            handleCaptionVideo(jobId)
-            resolve(data)
-            return
+          if (data.status === "completed") {
+            console.log("Video Status URL: ", data.raw_video_url)
+            const rawVideoUrl: any = data.raw_video_url
+            setVideoUrl(rawVideoUrl)
+            setPlayableVideoUrl(rawVideoUrl)
+
+            try {
+              const captionedData = await handleCaptionVideo(jobId)
+              resolve({ url: captionedData.captioned_video_url || videoUrl })
+            } catch (err) {
+              // If captioning fails, we still have the raw video URL
+              console.error("Error in captioning video:", err)
+              resolve({ url: videoUrl })
+            }
           } else {
             setTimeout(checkStatus, POLLING_INTERVAL)
-            return
           }
         } catch (err) {
           reject(err)
@@ -110,31 +109,38 @@ export default function NarrationToVideoTab({
     })
   }
 
-  const handleCaptionVideo = async (jobId: string): Promise<void> => {
+  const handleCaptionVideo = async (jobId: string): Promise<any> => {
     const POLLING_INTERVAL = 4000 // 4 seconds
+    const MAX_POLLING_TIME = 2 * 60 * 1000 // 2 minutes in milliseconds
+    const startTime = Date.now()
 
     return new Promise((resolve, reject) => {
       const checkCaptionedStatus = async () => {
         try {
+          // Check if we've exceeded the time limit
+          if (Date.now() - startTime > MAX_POLLING_TIME) {
+            console.warn("Video captioning timed out, falling back to raw video")
+            resolve({ captioned_video_url: null }) // Resolve with null to indicate captioning failed
+            return
+          }
 
-          const data: any = await CaptionVideo(jobId)
+          const data = await CaptionVideo(jobId)
           console.log("Captioned Video Status:", data.status)
 
-          if (data.status == "completed") {
-            console.log("Video URL: ", data)
-            setVideoUrl(data.captioned_video_url)
-            setPlayableVideoUrl(data.captioned_video_url)
+          if (data.status === "completed") {
+            console.log("Captioned Video URL: ", data.captioned_video_url)
+            const captionedUrl: any = data.captioned_video_url
+            setVideoUrl(captionedUrl)
+            setPlayableVideoUrl(captionedUrl)
             resolve(data)
-            return
           } else {
             setTimeout(checkCaptionedStatus, POLLING_INTERVAL)
-            return
           }
         } catch (err) {
           reject(err)
         }
       }
-      checkCaptionedStatus();
+      checkCaptionedStatus()
     })
   }
 
@@ -144,52 +150,61 @@ export default function NarrationToVideoTab({
     setLoading(true)
     setError("")
     setGenerated(false)
+    setShowNarrationEditor(false)
 
     try {
       // Generate video using server action
       const videoData = await generateVideoFromNarration(script, voice, duration);
       console.log("Video generation response:", videoData);
 
+      let finalVideoUrl = "";
+
       // If the API has shifted to using job IDs like the TextToVideo endpoint
       if (videoData.job_id) {
         try {
-          const finalVideoUrl = await pollJobStatus(videoData.job_id);
-          // Store video in Supabase
-          await storeVideoInSupabase(
-            finalVideoUrl,
-            user.id,
-            duration,
-            script.substring(0, 50), // Using first 50 chars of script as title
-            script // Using full script as description
-          );
+          const pollResult = await pollJobStatus(videoData.job_id);
+          finalVideoUrl = pollResult.url;
 
-          setGenerated(true);
-          setShowPreviewDrawer(true);
+          if (!finalVideoUrl) {
+            throw new Error("Failed to retrieve video URL");
+          }
         } catch (pollingError) {
           console.error("Error during video polling:", pollingError);
           setError(`Failed to generate video: ${pollingError instanceof Error ? pollingError.message : "Video generation timed out after 3 minutes"}`);
-          setGenerated(false);
+          setLoading(false);
+          return;
         }
-      } else {
+      } else if (videoData.url) {
         // Use the direct URL if the API still provides it
-        setVideoUrl(videoData.url || "");
-        // Store video in Supabase
+        finalVideoUrl = videoData.url;
+        setVideoUrl(finalVideoUrl);
+        setPlayableVideoUrl(finalVideoUrl);
+      } else {
+        throw new Error("No video URL or job ID returned from API");
+      }
+
+      // Set generated flag and show preview
+      setGenerated(true);
+      setShowPreviewDrawer(true);
+
+      // Store video in Supabase
+      try {
         await storeVideoInSupabase(
-          videoData.url,
+          finalVideoUrl,
           user.id,
           duration,
-          script.substring(0, 50),
-          script
+          script.substring(0, 50), // Using first 50 chars of script as title
+          script // Using full script as description
         );
-
-        setGenerated(true);
-        setShowPreviewDrawer(true);
+        console.log("Video stored in Supabase successfully");
+      } catch (storeErr) {
+        console.error("Error storing video in Supabase:", storeErr);
+        setError(`Video generated but failed to save: ${storeErr instanceof Error ? storeErr.message : "Unknown error"}`);
       }
     }
     catch (error) {
       console.error("Error generating video:", error);
       setError(`Failed to generate video: ${error instanceof Error ? error.message : "Unknown error"}`);
-      setGenerated(false);
     } finally {
       setLoading(false);
     }
@@ -300,10 +315,10 @@ export default function NarrationToVideoTab({
 
       {/* Narration Editor Dialog */}
       <Dialog open={showNarrationEditor} onOpenChange={handleNarrationDialogClose}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[600px] bg-neutral-950 text-white border-none rounded-3xl shadow-sm shadow-neutral-500">
           <DialogHeader>
             <DialogTitle>Edit Narration</DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="text-neutral-400">
               Make changes to your narration script here.
             </DialogDescription>
           </DialogHeader>
@@ -312,14 +327,57 @@ export default function NarrationToVideoTab({
               value={script}
               onChange={handleScriptChange}
               placeholder="Enter your narration script..."
-              className="min-h-[200px]"
+              className="min-h-[200px] bg-neutral-900 border-none rounded-3xl"
             />
-            <div className="text-sm text-muted-foreground">
+            <div className="text-sm text-neutral-400">
               {charCount}/{charLimit} characters (~{getApproxWordCount()}/{getWordLimit()} words)
             </div>
           </div>
           <DialogFooter>
-            <Button onClick={confirmNarrationClose}>Done</Button>
+            <Button
+              variant="outline"
+              onClick={() => setShowNarrationWarning(true)}
+              className="w-fit gap-2 bg-transparent rounded-3xl"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleGenerateVideo}
+              disabled={loading || !script}
+              className="w-fit gap-2 bg-indigo-600 hover:bg-indigo-700 rounded-3xl"
+            >
+              Generate Video
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showNarrationWarning} onOpenChange={setShowNarrationWarning}>
+        <DialogContent className="bg-neutral-950 text-white border-none shadow-sm shadow-neutral-500">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 text-yellow-500" />
+              Warning
+            </DialogTitle>
+            <DialogDescription>
+              Closing or canceling the narration editor may result in losing your credits and video progress. Are you sure you want to proceed?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowNarrationWarning(false)}
+              className="w-fit gap-2 bg-transparent rounded-3xl"
+            >
+              Continue Editing
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmNarrationClose}
+              className="w-fit gap-2 rounded-3xl"
+            >
+              Close Anyway
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -328,9 +386,8 @@ export default function NarrationToVideoTab({
       {videoUrl && (
         <Drawer open={showPreviewDrawer} onOpenChange={handlePreviewDrawerClose}>
           <DrawerContent className="text-white bg-transparent backdrop-blur-lg border-none shadow-md shadow-neutral-500">
-            <div className="mx-auto w-full max-w-2xl items-center">
-
-              <div className="p-4">
+            <div className="mx-auto w-full md:max-w-2xl">
+              <div className="p-4 flex flex-col items-center justify-end">
                 <VideoPreview
                   download={playableVideoUrl}
                   generated={generated}
@@ -341,7 +398,7 @@ export default function NarrationToVideoTab({
               </div>
               <DrawerFooter>
                 <DrawerClose asChild>
-                  <Button onClick={confirmPreviewClose} className="gap-2 bg-transparent rounded-3xl bg-neutral-900" variant="outline">
+                  <Button onClick={confirmPreviewClose} className="gap-2 bg-transparent rounded-3xl" variant="outline">
                     Close
                   </Button>
                 </DrawerClose>
@@ -349,6 +406,46 @@ export default function NarrationToVideoTab({
             </div>
           </DrawerContent>
         </Drawer>
+      )}
+
+      <Dialog open={showPreviewWarning} onOpenChange={setShowPreviewWarning}>
+        <DialogContent className="bg-neutral-950 text-white border-none shadow-sm shadow-neutral-500">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 text-yellow-500" />
+              Warning
+            </DialogTitle>
+            <DialogDescription>
+              Closing the video preview may result in losing your credits and video progress. Are you sure you want to proceed?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowPreviewWarning(false)}
+              className="w-fit gap-2 bg-transparent rounded-3xl"
+            >
+              Continue Viewing
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmPreviewClose}
+              className="w-fit gap-2 rounded-3xl"
+            >
+              Close Anyway
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {generated && !showPreviewDrawer && (
+        <Button
+          className="fixed bottom-16 right-4 rounded-full p-4 shadow-lg"
+          onClick={() => setShowPreviewDrawer(true)}
+        >
+          <Video className="h-5 w-5" />
+          <span className="ml-2">Reopen Preview</span>
+        </Button>
       )}
     </div>
   )

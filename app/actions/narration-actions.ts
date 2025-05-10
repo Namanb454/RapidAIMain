@@ -14,10 +14,11 @@ export async function generateVideoFromNarration(
       "script_prompt": {
         "script": script,
         "title": "",
-        "title_image_prompt": ""
+        "title_image_prompt": "",
       },
       "voice": voice,
       "time_limit": timeLimit,
+      "user_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6"
     }),
   });
 

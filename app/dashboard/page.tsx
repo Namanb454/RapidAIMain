@@ -105,7 +105,7 @@ export default function DashboardPage() {
                   controls
                 />
               </div>
-              <CardHeader className="bg-neutral-950 text-white">
+              <CardHeader className="bg-neutral-950 text-white h-full">
                 <CardTitle className="text-lg">{video.title || 'Untitled Video'}</CardTitle>
               </CardHeader>
             </Card>
