@@ -44,7 +44,7 @@ export default function TextToVideoTab({
   const [showPreviewWarning, setShowPreviewWarning] = useState<boolean>(false)
   const [playableVideoUrl, setPlayableVideoUrl] = useState<string>("")
 
-  const pollJobStatus = async (jobId: string): Promise<string> => {
+   const pollJobStatus = async (jobId: string): Promise<string> => {
     const POLLING_INTERVAL = 4000 // 4 seconds
     const MAX_POLLING_TIME = 3 * 60 * 1000 // 3 minutes in milliseconds
     const startTime = Date.now()
@@ -60,11 +60,11 @@ export default function TextToVideoTab({
           }
 
           const data: any = await RawCaptionVideo(jobId)
-          console.log("Raw Video:", data)
+          console.log("Raw Video Status:", data.status)
 
-          if (data) {
-            console.log("Video URL: ", data)
-            setVideoUrl(data)
+          if (data.status == "completed") {
+            console.log("Video URL: ", data.raw_video_url)
+            setVideoUrl(data.raw_video_url)
             setPlayableVideoUrl(data.raw_video_url)
             handleCaptionVideo(jobId)
             resolve(data)
@@ -86,28 +86,30 @@ export default function TextToVideoTab({
     const POLLING_INTERVAL = 4000 // 4 seconds
 
     return new Promise((resolve, reject) => {
-      const checkStatus = async () => {
+      const checkCaptionedStatus = async () => {
         try {
-          const captionedVideo: any = await CaptionVideo(jobId)
-          console.log("Captioned Video:", captionedVideo?.captioned_video_url)
 
-          if (captionedVideo?.captioned_video_url) {
-            console.log("Video URL: ", captionedVideo)
-            setVideoUrl(captionedVideo)
-            setPlayableVideoUrl(captionedVideo.captioned_video_url)
-            resolve(captionedVideo)
+          const data: any = await CaptionVideo(jobId)
+          console.log("Captioned Video Status:", data.status)
+
+          if (data.status == "completed") {
+            console.log("Video URL: ", data)
+            setVideoUrl(data.captioned_video_url)
+            setPlayableVideoUrl(data.captioned_video_url)
+            resolve(data)
             return
           } else {
-            setTimeout(checkStatus, POLLING_INTERVAL)
+            setTimeout(checkCaptionedStatus, POLLING_INTERVAL)
             return
           }
         } catch (err) {
           reject(err)
         }
       }
-      checkStatus()
+      checkCaptionedStatus();
     })
   }
+
 
   const handleGenerateNarration = async (): Promise<void> => {
     if (!prompt) return

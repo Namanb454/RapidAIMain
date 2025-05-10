@@ -88,11 +88,11 @@ export default function NarrationToVideoTab({
           }
 
           const data: any = await RawCaptionVideo(jobId)
-          console.log("Raw Video:", data)
+          console.log("Raw Video Status:", data.status)
 
-          if (data) {
-            console.log("Video URL: ", data)
-            setVideoUrl(data)
+          if (data.status == "completed") {
+            console.log("Video URL: ", data.raw_video_url)
+            setVideoUrl(data.raw_video_url)
             setPlayableVideoUrl(data.raw_video_url)
             handleCaptionVideo(jobId)
             resolve(data)
@@ -112,30 +112,29 @@ export default function NarrationToVideoTab({
 
   const handleCaptionVideo = async (jobId: string): Promise<void> => {
     const POLLING_INTERVAL = 4000 // 4 seconds
-    const startTime = Date.now()
 
     return new Promise((resolve, reject) => {
-      const checkStatus = async () => {
+      const checkCaptionedStatus = async () => {
         try {
 
-          const captionedVideo: any = await CaptionVideo(jobId)
-          console.log("Captioned Video:", captionedVideo)
+          const data: any = await CaptionVideo(jobId)
+          console.log("Captioned Video Status:", data.status)
 
-          if (captionedVideo) {
-            console.log("Video URL: ", captionedVideo)
-            setVideoUrl(captionedVideo)
-            setPlayableVideoUrl(captionedVideo.captioned_video_url)
-            resolve(captionedVideo)
+          if (data.status == "completed") {
+            console.log("Video URL: ", data)
+            setVideoUrl(data.captioned_video_url)
+            setPlayableVideoUrl(data.captioned_video_url)
+            resolve(data)
             return
           } else {
-            setTimeout(checkStatus, POLLING_INTERVAL)
+            setTimeout(checkCaptionedStatus, POLLING_INTERVAL)
             return
           }
         } catch (err) {
           reject(err)
         }
       }
-      checkStatus()
+      checkCaptionedStatus();
     })
   }
 
@@ -163,7 +162,7 @@ export default function NarrationToVideoTab({
             script.substring(0, 50), // Using first 50 chars of script as title
             script // Using full script as description
           );
-          
+
           setGenerated(true);
           setShowPreviewDrawer(true);
         } catch (pollingError) {
@@ -182,7 +181,7 @@ export default function NarrationToVideoTab({
           script.substring(0, 50),
           script
         );
-        
+
         setGenerated(true);
         setShowPreviewDrawer(true);
       }
@@ -333,7 +332,7 @@ export default function NarrationToVideoTab({
 
               <div className="p-4">
                 <VideoPreview
-                download={playableVideoUrl}
+                  download={playableVideoUrl}
                   generated={generated}
                   videoUrl={videoUrl}
                   loading={loading}
