@@ -105,9 +105,9 @@ export async function RawCaptionVideo(jobId: string): Promise<JobStatusResponse>
         },
     });
 
-    // if (response?.status == "completed") {
-    //     return response.json();
-    // }
+    if (response?.status == "completed") {
+        return response.json();
+    }
 
     if (response?.status == "failed") {
         throw new Error(`Failed to get job status. Status: ${response.status}`);
@@ -132,9 +132,9 @@ export async function CaptionVideo(jobId: string): Promise<JobStatusResponse> {
         },
     });
 
-    // if (response?.status == "completed") {
-    //     return response.json();
-    // }
+    if (response?.status == "completed") {
+        return response.json();
+    }
 
     if (response?.status == "failed") {
         throw new Error(`Failed to get job status. Status: ${response.status}`);

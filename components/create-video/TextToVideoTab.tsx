@@ -46,14 +46,24 @@ export default function TextToVideoTab({
 
   const pollJobStatus = async (jobId: string): Promise<string> => {
     const POLLING_INTERVAL = 4000 // 4 seconds
+    const MAX_POLLING_TIME = 3 * 60 * 1000 // 3 minutes in milliseconds
+    const startTime = Date.now()
 
     return new Promise((resolve, reject) => {
       const checkStatus = async () => {
         try {
-          const data: any = await RawCaptionVideo("1f85d093-0494-43af-994f-bebbbbdf63fa")
-          console.log("Raw Video:", data?.raw_video_url)
+          // Check if we've exceeded the time limit
+          if (Date.now() - startTime > MAX_POLLING_TIME) {
+            setError("Video generation timed out after 3 minutes. Please try again.")
+            reject(new Error("Video generation timed out after 3 minutes"))
+            return
+          }
 
-          if (data?.raw_video_url) {
+          const data: any = await RawCaptionVideo(jobId)
+          console.log("Raw Video:", data)
+
+          if (data) {
+            console.log("Video URL: ", data)
             setVideoUrl(data)
             setPlayableVideoUrl(data.raw_video_url)
             handleCaptionVideo(jobId)
@@ -78,7 +88,7 @@ export default function TextToVideoTab({
     return new Promise((resolve, reject) => {
       const checkStatus = async () => {
         try {
-          const captionedVideo: any = await CaptionVideo("1f85d093-0494-43af-994f-bebbbbdf63fa")
+          const captionedVideo: any = await CaptionVideo(jobId)
           console.log("Captioned Video:", captionedVideo?.captioned_video_url)
 
           if (captionedVideo?.captioned_video_url) {

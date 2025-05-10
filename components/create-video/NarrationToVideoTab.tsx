@@ -74,10 +74,19 @@ export default function NarrationToVideoTab({
 
   const pollJobStatus = async (jobId: string): Promise<string> => {
     const POLLING_INTERVAL = 4000 // 4 seconds
+    const MAX_POLLING_TIME = 3 * 60 * 1000 // 3 minutes in milliseconds
+    const startTime = Date.now()
 
     return new Promise((resolve, reject) => {
       const checkStatus = async () => {
         try {
+          // Check if we've exceeded the time limit
+          if (Date.now() - startTime > MAX_POLLING_TIME) {
+            setError("Video generation timed out after 3 minutes. Please try again.")
+            reject(new Error("Video generation timed out after 3 minutes"))
+            return
+          }
+
           const data: any = await RawCaptionVideo(jobId)
           console.log("Raw Video:", data)
 
@@ -103,10 +112,12 @@ export default function NarrationToVideoTab({
 
   const handleCaptionVideo = async (jobId: string): Promise<void> => {
     const POLLING_INTERVAL = 4000 // 4 seconds
+    const startTime = Date.now()
 
     return new Promise((resolve, reject) => {
       const checkStatus = async () => {
         try {
+
           const captionedVideo: any = await CaptionVideo(jobId)
           console.log("Captioned Video:", captionedVideo)
 
@@ -142,15 +153,24 @@ export default function NarrationToVideoTab({
 
       // If the API has shifted to using job IDs like the TextToVideo endpoint
       if (videoData.job_id) {
-        const finalVideoUrl = await pollJobStatus(videoData.job_id);
-        // Store video in Supabase
-        await storeVideoInSupabase(
-          finalVideoUrl,
-          user.id,
-          duration,
-          script.substring(0, 50), // Using first 50 chars of script as title
-          script // Using full script as description
-        );
+        try {
+          const finalVideoUrl = await pollJobStatus(videoData.job_id);
+          // Store video in Supabase
+          await storeVideoInSupabase(
+            finalVideoUrl,
+            user.id,
+            duration,
+            script.substring(0, 50), // Using first 50 chars of script as title
+            script // Using full script as description
+          );
+          
+          setGenerated(true);
+          setShowPreviewDrawer(true);
+        } catch (pollingError) {
+          console.error("Error during video polling:", pollingError);
+          setError(`Failed to generate video: ${pollingError instanceof Error ? pollingError.message : "Video generation timed out after 3 minutes"}`);
+          setGenerated(false);
+        }
       } else {
         // Use the direct URL if the API still provides it
         setVideoUrl(videoData.url || "");
@@ -162,14 +182,15 @@ export default function NarrationToVideoTab({
           script.substring(0, 50),
           script
         );
+        
+        setGenerated(true);
+        setShowPreviewDrawer(true);
       }
-
-      setGenerated(true);
-      setShowPreviewDrawer(true);
     }
     catch (error) {
       console.error("Error generating video:", error);
       setError(`Failed to generate video: ${error instanceof Error ? error.message : "Unknown error"}`);
+      setGenerated(false);
     } finally {
       setLoading(false);
     }
