@@ -56,6 +56,7 @@ export async function generateNarration(scriptPrompt: string, timeLimit: string)
         body: JSON.stringify({
             "script_prompt": scriptPrompt,
             "time_limit": timeLimit,
+            "user_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6"
         }),
     });
 
@@ -79,6 +80,10 @@ export async function generateVideo(narrationData: any, voice: string, timeLimit
             "script_prompt": narrationData,
             "voice": voice,
             "time_limit": timeLimit,
+            "user_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+            "font_name": "Anton-Regular.ttf",
+            "base_font_color": "green",
+            "highlight_word_color": "blue"
         }),
     });
 
