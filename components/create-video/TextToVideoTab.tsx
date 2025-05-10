@@ -4,7 +4,7 @@ import { JSX, useState } from "react"
 import { SharedVideoProps } from "@/types/video"
 import VideoForm from "./VideoForm"
 import VideoPreview from "./VideoPreview"
-import { CaptionVideo, generateNarration, generateVideo, RawCaptionVideo, storeVideoInSupabase } from "@/app/actions/video-actions"
+import { CaptionVideo, generateNarration, generateVideo, RawVideo, storeVideoInSupabase } from "@/app/actions/video-actions"
 import VideoFields from "./VideoFields"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
@@ -35,6 +35,8 @@ export default function TextToVideoTab({
   const [showPreviewWarning, setShowPreviewWarning] = useState<boolean>(false)
   const [playableVideoUrl, setPlayableVideoUrl] = useState<string>("")
   const [videoUrl, setVideoUrl] = useState<string>("")
+  const [isRawVideo, setIsRawVideo] = useState<boolean>(false)
+  const [isCaptioning, setIsCaptioning] = useState<boolean>(false)
 
   const pollJobStatus = async (jobId: string): Promise<any> => {
     const POLLING_INTERVAL = 4000 // 4 seconds
@@ -51,22 +53,31 @@ export default function TextToVideoTab({
             return
           }
 
-          const data = await RawCaptionVideo(jobId)
+          const data = await RawVideo(jobId)
           console.log("Raw Video Status:", data.status)
 
-          if (data.status === "completed") {
+          if (data.raw_video_url) {
             console.log("Video Status URL: ", data.raw_video_url)
             const rawVideoUrl: any = data.raw_video_url
             setVideoUrl(rawVideoUrl)
             setPlayableVideoUrl(rawVideoUrl)
+            setIsRawVideo(true)
+            setGenerated(true)
+            
+            // Show the preview with raw video first
+            setShowPreviewDrawer(true)
 
+            // Now start captioning process
             try {
+              setIsCaptioning(true)
               const captionedData = await handleCaptionVideo(jobId)
+              setIsCaptioning(false)
               resolve(captionedData)
             } catch (err) {
               // If captioning fails, we still have the raw video URL
+              setIsCaptioning(false)
               console.error("Error in captioning video:", err)
-              resolve({ url: videoUrl })
+              resolve({ url: rawVideoUrl })
             }
           } else {
             setTimeout(checkStatus, POLLING_INTERVAL)
@@ -82,27 +93,19 @@ export default function TextToVideoTab({
 
   const handleCaptionVideo = async (jobId: string): Promise<any> => {
     const POLLING_INTERVAL = 4000 // 4 seconds
-    const MAX_POLLING_TIME = 2 * 60 * 1000 // 2 minutes in milliseconds
-    const startTime = Date.now()
 
     return new Promise((resolve, reject) => {
       const checkCaptionedStatus = async () => {
         try {
-          // Check if we've exceeded the time limit
-          if (Date.now() - startTime > MAX_POLLING_TIME) {
-            console.warn("Video captioning timed out, falling back to raw video")
-            resolve({ url: videoUrl }) // Resolve with the raw video URL as fallback
-            return
-          }
-
           const data = await CaptionVideo(jobId)
           console.log("Captioned Video Status:", data.status)
 
-          if (data.status === "completed") {
+          if (data.captioned_video_url) {
             console.log("Captioned Video URL: ", data.captioned_video_url)
             const captionedUrl: any = data.captioned_video_url
             setVideoUrl(captionedUrl)
             setPlayableVideoUrl(captionedUrl)
+            setIsRawVideo(false)
             resolve({ url: captionedUrl })
           } else {
             setTimeout(checkCaptionedStatus, POLLING_INTERVAL)
@@ -142,6 +145,10 @@ export default function TextToVideoTab({
     setError("")
     setGenerated(false)
     setShowNarrationEditor(false)
+    setIsRawVideo(false)
+    setIsCaptioning(false)
+    setVideoUrl("")
+    setPlayableVideoUrl("")
 
     try {
       // Update script with the edited narration
@@ -158,9 +165,7 @@ export default function TextToVideoTab({
         throw new Error("Failed to retrieve video URL")
       }
 
-      setGenerated(true)
       console.log("Video URL retrieved successfully:", finalVideoUrl)
-      setShowPreviewDrawer(true)
 
       // Store video in Supabase
       try {
@@ -343,6 +348,23 @@ export default function TextToVideoTab({
         <Drawer open={showPreviewDrawer} onOpenChange={handlePreviewDrawerClose}>
           <DrawerContent className="text-white bg-transparent backdrop-blur-lg border-none shadow-md shadow-neutral-500">
             <div className="mx-auto w-full md:max-w-2xl">
+              <DrawerHeader>
+                <DrawerTitle className="text-center">
+                  {isRawVideo ? (
+                    <div className="flex items-center justify-center gap-2">
+                      <span>Preview (Raw Video)</span>
+                      {isCaptioning && (
+                        <div className="flex items-center gap-1 text-yellow-300 text-sm font-normal animate-pulse">
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          <span>Adding captions...</span>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    "Preview (Captioned Video)"
+                  )}
+                </DrawerTitle>
+              </DrawerHeader>
               <div className="p-4 flex flex-col items-center justify-end">
                 <VideoPreview
                   download={playableVideoUrl}
@@ -350,6 +372,8 @@ export default function TextToVideoTab({
                   videoUrl={videoUrl}
                   loading={loading}
                   onRegenerate={handleGenerateNarration}
+                  isRawVideo={isRawVideo}
+                  isCaptioning={isCaptioning}
                 />
               </div>
               <DrawerFooter>

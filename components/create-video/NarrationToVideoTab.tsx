@@ -6,7 +6,7 @@ import { SharedVideoProps } from "@/types/video"
 import VideoForm from "./VideoForm"
 import VideoPreview from "./VideoPreview"
 import { generateVideoFromNarration } from "@/app/actions/narration-actions"
-import { CaptionVideo, RawCaptionVideo, storeVideoInSupabase } from "@/app/actions/video-actions"
+import { CaptionVideo, RawVideo, storeVideoInSupabase } from "@/app/actions/video-actions"
 import { useAuth } from "@/context/auth-context"
 import VideoFields from "./VideoFields"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog"
@@ -44,6 +44,8 @@ export default function NarrationToVideoTab({
   const [showPreviewWarning, setShowPreviewWarning] = useState<boolean>(false)
   const [playableVideoUrl, setPlayableVideoUrl] = useState<string>("")
   const [videoUrl, setVideoUrl] = useState<string>("")
+  const [isRawVideo, setIsRawVideo] = useState<boolean>(false)
+  const [isCaptioning, setIsCaptioning] = useState<boolean>(false)
 
   // Update character limit when duration changes
   useEffect(() => {
@@ -80,22 +82,31 @@ export default function NarrationToVideoTab({
             return
           }
 
-          const data = await RawCaptionVideo(jobId)
+          const data = await RawVideo(jobId)
           console.log("Raw Video Status:", data.status)
 
-          if (data.status === "completed") {
+          if (data.raw_video_url) {
             console.log("Video Status URL: ", data.raw_video_url)
             const rawVideoUrl: any = data.raw_video_url
             setVideoUrl(rawVideoUrl)
             setPlayableVideoUrl(rawVideoUrl)
+            setIsRawVideo(true)
+            setGenerated(true)
 
+            // Show the preview with raw video first
+            setShowPreviewDrawer(true)
+
+            // Now start captioning process
             try {
+              setIsCaptioning(true)
               const captionedData = await handleCaptionVideo(jobId)
-              resolve({ url: captionedData.captioned_video_url || videoUrl })
+              setIsCaptioning(false)
+              resolve(captionedData)
             } catch (err) {
               // If captioning fails, we still have the raw video URL
+              setIsCaptioning(false)
               console.error("Error in captioning video:", err)
-              resolve({ url: videoUrl })
+              resolve({ url: rawVideoUrl })
             }
           } else {
             setTimeout(checkStatus, POLLING_INTERVAL)
@@ -111,28 +122,20 @@ export default function NarrationToVideoTab({
 
   const handleCaptionVideo = async (jobId: string): Promise<any> => {
     const POLLING_INTERVAL = 4000 // 4 seconds
-    const MAX_POLLING_TIME = 2 * 60 * 1000 // 2 minutes in milliseconds
-    const startTime = Date.now()
 
     return new Promise((resolve, reject) => {
       const checkCaptionedStatus = async () => {
         try {
-          // Check if we've exceeded the time limit
-          if (Date.now() - startTime > MAX_POLLING_TIME) {
-            console.warn("Video captioning timed out, falling back to raw video")
-            resolve({ captioned_video_url: null }) // Resolve with null to indicate captioning failed
-            return
-          }
-
           const data = await CaptionVideo(jobId)
           console.log("Captioned Video Status:", data.status)
 
-          if (data.status === "completed") {
+          if (data.captioned_video_url) {
             console.log("Captioned Video URL: ", data.captioned_video_url)
             const captionedUrl: any = data.captioned_video_url
             setVideoUrl(captionedUrl)
             setPlayableVideoUrl(captionedUrl)
-            resolve(data)
+            setIsRawVideo(false)
+            resolve({ url: captionedUrl })
           } else {
             setTimeout(checkCaptionedStatus, POLLING_INTERVAL)
           }
@@ -151,23 +154,21 @@ export default function NarrationToVideoTab({
     setError("")
     setGenerated(false)
     setShowNarrationEditor(false)
+    setIsRawVideo(false)
+    setIsCaptioning(false)
+    setVideoUrl("")
+    setPlayableVideoUrl("")
 
     try {
       // Generate video using server action
       const videoData = await generateVideoFromNarration(script, voice, duration);
       console.log("Video generation response:", videoData);
 
-      let finalVideoUrl = "";
-
       // If the API has shifted to using job IDs like the TextToVideo endpoint
       if (videoData.job_id) {
         try {
-          const pollResult = await pollJobStatus(videoData.job_id);
-          finalVideoUrl = pollResult.url;
-
-          if (!finalVideoUrl) {
-            throw new Error("Failed to retrieve video URL");
-          }
+          await pollJobStatus(videoData.job_id);
+          // Note: We don't need to set final URL here as it's handled in pollJobStatus
         } catch (pollingError) {
           console.error("Error during video polling:", pollingError);
           setError(`Failed to generate video: ${pollingError instanceof Error ? pollingError.message : "Video generation timed out after 3 minutes"}`);
@@ -176,27 +177,32 @@ export default function NarrationToVideoTab({
         }
       } else if (videoData.url) {
         // Use the direct URL if the API still provides it
-        finalVideoUrl = videoData.url;
-        setVideoUrl(finalVideoUrl);
-        setPlayableVideoUrl(finalVideoUrl);
+        // For backward compatibility
+        const directUrl = videoData.url;
+        setVideoUrl(directUrl);
+        setPlayableVideoUrl(directUrl);
+        setIsRawVideo(true); // Assume it's raw if using direct URL
+        setGenerated(true);
+        setShowPreviewDrawer(true);
       } else {
         throw new Error("No video URL or job ID returned from API");
       }
 
-      // Set generated flag and show preview
-      setGenerated(true);
-      setShowPreviewDrawer(true);
-
-      // Store video in Supabase
+      // Store video in Supabase - using the current videoUrl which should be set either by polling or direct
       try {
-        await storeVideoInSupabase(
-          finalVideoUrl,
-          user.id,
-          duration,
-          script.substring(0, 50), // Using first 50 chars of script as title
-          script // Using full script as description
-        );
-        console.log("Video stored in Supabase successfully");
+        // Wait a bit to ensure we have the latest URL
+        setTimeout(async () => {
+          if (videoUrl) {
+            await storeVideoInSupabase(
+              videoUrl,
+              user.id,
+              duration,
+              script.substring(0, 50), // Using first 50 chars of script as title
+              script // Using full script as description
+            );
+            console.log("Video stored in Supabase successfully");
+          }
+        }, 1000);
       } catch (storeErr) {
         console.error("Error storing video in Supabase:", storeErr);
         setError(`Video generated but failed to save: ${storeErr instanceof Error ? storeErr.message : "Unknown error"}`);
@@ -387,6 +393,23 @@ export default function NarrationToVideoTab({
         <Drawer open={showPreviewDrawer} onOpenChange={handlePreviewDrawerClose}>
           <DrawerContent className="text-white bg-transparent backdrop-blur-lg border-none shadow-md shadow-neutral-500">
             <div className="mx-auto w-full md:max-w-2xl">
+              <DrawerHeader>
+                <DrawerTitle className="text-center">
+                  {isRawVideo ? (
+                    <div className="flex items-center justify-center gap-2">
+                      <span>Preview (Raw Video)</span>
+                      {isCaptioning && (
+                        <div className="flex items-center gap-1 text-yellow-300 text-sm font-normal animate-pulse">
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          <span>Adding captions...</span>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    "Preview (Captioned Video)"
+                  )}
+                </DrawerTitle>
+              </DrawerHeader>
               <div className="p-4 flex flex-col items-center justify-end">
                 <VideoPreview
                   download={playableVideoUrl}
@@ -394,6 +417,8 @@ export default function NarrationToVideoTab({
                   videoUrl={videoUrl}
                   loading={loading}
                   onRegenerate={handleGenerateVideo}
+                  isRawVideo={isRawVideo}
+                  isCaptioning={isCaptioning}
                 />
               </div>
               <DrawerFooter>

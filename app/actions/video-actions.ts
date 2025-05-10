@@ -100,7 +100,7 @@ export async function generateVideo(narrationData: any, voice: string, timeLimit
 /**
  * Checks the status of a job and returns the video URL when completed
  */
-export async function RawCaptionVideo(jobId: string): Promise<JobStatusResponse> {
+export async function RawVideo(jobId: string): Promise<JobStatusResponse> {
     const params = new URLSearchParams({
         job_id: jobId
     });
