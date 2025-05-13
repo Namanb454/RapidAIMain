@@ -7,6 +7,7 @@ import { ArrowRight, Clock, Film, Plus, Video, Wand2 } from "lucide-react"
 import { useEffect, useState } from "react"
 import { createClient } from "@/utils/supabase/client"
 import { Database } from "@/types/supabase"
+import { SidebarTrigger } from "@/components/ui/sidebar"
 
 type Video = Database['public']['Tables']['videos']['Row']
 
@@ -43,7 +44,10 @@ export default function DashboardPage() {
     <div className="space-y-6 text-white">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <h2 className="text-2xl font-bold">Dashboard</h2>
+          <div className="flex items-center gap-2">
+            <SidebarTrigger />
+            <h2 className="text-2xl font-bold">Dashboard</h2>
+          </div>
           <p className="text-muted-foreground">Welcome to your dashboard</p>
         </div>
         <Link href="/dashboard/create">

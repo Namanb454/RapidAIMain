@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import TextToVideoTab from "@/components/create-video/TextToVideoTab"
 import { DurationOption, VoiceOption } from "@/types/video"
 import NarrationToVideoTab from "@/components/create-video/NarrationToVideoTab"
+import { SidebarTrigger } from "@/components/ui/sidebar"
 
 
 export default function CreateVideoPage(): JSX.Element {
@@ -33,9 +34,12 @@ export default function CreateVideoPage(): JSX.Element {
   }
 
   return (
-    <div className="space-y-6 text-white">
+    <div className="space-y-6 text-white w-full">
       <div>
-        <h2 className="text-2xl font-bold ">Create New Video</h2>
+        <div className="flex items-center gap-2">
+          <SidebarTrigger />
+          <h2 className="text-2xl font-bold ">Create New Video</h2>
+        </div>
         <p className="text-muted-foreground">Generate a video using AI by describing what you want to see</p>
       </div>
 
