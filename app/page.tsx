@@ -8,7 +8,7 @@ import HowItWorks from '@/components/HowItWorks';
 import Example from '@/components/Example';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
-import { easeInOut, motion} from 'framer-motion';
+import { easeInOut, motion } from 'framer-motion';
 import { FeatureData } from './data';
 
 export default function Home() {
@@ -112,14 +112,18 @@ export default function Home() {
         {/* Testimonials Section */}
         <section className="py-20 px-4 md:px-6 lg:px-8">
           <div className="max-w-7xl mx-auto">
-            <div className="text-center mb-16">
+            <motion.div
+              variants={itemVariants}
+              className="text-center mb-16">
               <h2 className="text-3xl md:text-4xl font-bold mb-4">What Our Users Say</h2>
               <p className="text-xl text-neutral-300 max-w-2xl mx-auto">
                 Hear from content creators who have transformed their video production with VideoGen
               </p>
-            </div>
+            </motion.div>
 
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <motion.div
+              variants={itemVariants}
+              className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
               <TestimonialCard
                 quote="VideoGen has completely transformed my content creation workflow. What used to take days now takes minutes, and the quality is incredible!"
                 author="Sarah Johnson"
@@ -138,7 +142,7 @@ export default function Home() {
                 role="YouTube Creator"
                 company="Learn With Jess"
               />
-            </div>
+            </motion.div>
           </div>
         </section>
 
