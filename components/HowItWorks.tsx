@@ -53,7 +53,7 @@ const HowItWorks = () => {
             variants={containerVariants}
             initial="hidden"
             whileInView="show"
-            id="how-it-works" className="py-20 px-4 md:px-6 lg:px-8">
+            id="how-it-works" className="py-20 px-0 md:px-6 lg:px-8">
             <div className="max-w-7xl mx-auto">
                 <motion.div
                     variants={itemVariants}

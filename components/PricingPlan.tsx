@@ -11,7 +11,7 @@ const PricingPlan = ({ title, price, description, features, popular = false }: {
     popular?: boolean
 }) => {
     return (
-        <Card className={`relative overflow-hidden ${popular ? 'border-indigo-500 bg-neutral-800' : 'border-neutral-800 bg-neutral-900'}`}>
+        <Card className={`relative overflow-hidden rounded-3xl ${popular ? 'border-indigo-500 bg-transparent' : 'border-neutral-800 bg-transparent scale-95'}`}>
             {popular && (
                 <div className="absolute top-0 right-0">
                     <div className="bg-indigo-500 text-white text-xs font-medium py-1 px-3 rounded-bl-lg">
@@ -25,9 +25,9 @@ const PricingPlan = ({ title, price, description, features, popular = false }: {
                     <span className="text-3xl font-bold text-white">${price}</span>
                     <span className="text-neutral-400 ml-1">/month</span>
                 </div>
-                <p className="text-neutral-400 mb-6">{description}</p>
+                <p className="text-neutral-400 mb-6 h-10">{description}</p>
                 <Button
-                    variant={popular ? "default" : "outline"}
+                    variant={popular ? "outline" : "default"}
                     className="w-full mb-6">
                     Get Started
                 </Button>
