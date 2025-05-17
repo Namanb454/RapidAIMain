@@ -27,7 +27,7 @@ export default function VideoPreview({
     <div className="w-full flex flex-col items-center gap-4">
       {generated && videoUrl ? (
         <>
-          <div className="relative w-fit aspect-video rounded-3xl overflow-hidden border border-neutral-800">
+          <div className="relative w-fit md:aspect-video rounded-3xl overflow-hidden border border--800 shadow-md shadow-indigo-500">
             <video
               className="w-full h-full object-"
               src={videoUrl}

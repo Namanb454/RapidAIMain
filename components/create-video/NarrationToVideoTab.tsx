@@ -46,6 +46,8 @@ export default function NarrationToVideoTab({
   const [videoUrl, setVideoUrl] = useState<string>("")
   const [isRawVideo, setIsRawVideo] = useState<boolean>(false)
   const [isCaptioning, setIsCaptioning] = useState<boolean>(false)
+  const [isVideoLoading, setIsVideoLoading] = useState<boolean>(false)
+  const [videoGenerationStage, setVideoGenerationStage] = useState<string>("")
 
   // Update character limit when duration changes
   useEffect(() => {
@@ -72,6 +74,14 @@ export default function NarrationToVideoTab({
     const MAX_POLLING_TIME = 3 * 60 * 1000 // 3 minutes in milliseconds
     const startTime = Date.now()
 
+    setIsVideoLoading(true)
+    setLoading(true)
+    setError("")
+    setGenerated(false)
+    setVideoGenerationStage("Generating video...")
+    // Open the preview drawer immediately when video generation starts
+    setShowPreviewDrawer(true)
+
     return new Promise((resolve, reject) => {
       const checkStatus = async () => {
         try {
@@ -85,20 +95,25 @@ export default function NarrationToVideoTab({
           const data = await RawVideo(jobId)
           console.log("Raw Video Status:", data.status)
 
+          // Update the generation stage with more specific information if available
+          if (data.status) {
+            setVideoGenerationStage(`Status: ${data.status}`)
+          }
+
           if (data.raw_video_url) {
             console.log("Video Status URL: ", data.raw_video_url)
             const rawVideoUrl: any = data.raw_video_url
             setVideoUrl(rawVideoUrl)
             setPlayableVideoUrl(rawVideoUrl)
             setIsRawVideo(true)
+            setLoading(false)
             setGenerated(true)
-
-            // Show the preview with raw video first
-            setShowPreviewDrawer(true)
+            setVideoGenerationStage("Raw video ready")
 
             // Now start captioning process
             try {
               setIsCaptioning(true)
+              setVideoGenerationStage("Adding captions...")
               const captionedData = await handleCaptionVideo(jobId)
               setIsCaptioning(false)
               resolve(captionedData)
@@ -106,6 +121,7 @@ export default function NarrationToVideoTab({
               // If captioning fails, we still have the raw video URL
               setIsCaptioning(false)
               console.error("Error in captioning video:", err)
+              setVideoGenerationStage("Caption failed, but raw video is available")
               resolve({ url: rawVideoUrl })
             }
           } else {
@@ -129,12 +145,18 @@ export default function NarrationToVideoTab({
           const data = await CaptionVideo(jobId)
           console.log("Captioned Video Status:", data.status)
 
+          if (data.status) {
+            setVideoGenerationStage(`Caption status: ${data.status}`)
+          }
+
           if (data.captioned_video_url) {
             console.log("Captioned Video URL: ", data.captioned_video_url)
             const captionedUrl: any = data.captioned_video_url
             setVideoUrl(captionedUrl)
             setPlayableVideoUrl(captionedUrl)
             setIsRawVideo(false)
+            setIsVideoLoading(false)
+            setVideoGenerationStage("Captioned video ready")
             resolve({ url: captionedUrl })
           } else {
             setTimeout(checkCaptionedStatus, POLLING_INTERVAL)
@@ -158,14 +180,21 @@ export default function NarrationToVideoTab({
     setIsCaptioning(false)
     setVideoUrl("")
     setPlayableVideoUrl("")
+    setIsVideoLoading(true)
+    setVideoGenerationStage("Preparing video generation...")
 
     try {
       // Generate video using server action
+      setVideoGenerationStage("Sending narration to generate video...")
       const videoData = await generateVideoFromNarration(script, voice, duration);
       console.log("Video generation response:", videoData);
 
       // If the API has shifted to using job IDs like the TextToVideo endpoint
       if (videoData.job_id) {
+        // Open the preview drawer early to show loading state
+        setShowPreviewDrawer(true)
+        setVideoGenerationStage("Video job created, processing video...")
+
         try {
           await pollJobStatus(videoData.job_id);
           // Note: We don't need to set final URL here as it's handled in pollJobStatus
@@ -173,16 +202,19 @@ export default function NarrationToVideoTab({
           console.error("Error during video polling:", pollingError);
           setError(`Failed to generate video: ${pollingError instanceof Error ? pollingError.message : "Video generation timed out after 3 minutes"}`);
           setLoading(false);
+          setIsVideoLoading(false);
           return;
         }
       } else if (videoData.url) {
         // Use the direct URL if the API still provides it
         // For backward compatibility
+        setVideoGenerationStage("Video generated successfully!")
         const directUrl = videoData.url;
         setVideoUrl(directUrl);
         setPlayableVideoUrl(directUrl);
         setIsRawVideo(true); // Assume it's raw if using direct URL
         setGenerated(true);
+        setIsVideoLoading(false);
         setShowPreviewDrawer(true);
       } else {
         throw new Error("No video URL or job ID returned from API");
@@ -191,6 +223,7 @@ export default function NarrationToVideoTab({
       // Store video in Supabase - using the current videoUrl which should be set either by polling or direct
       try {
         // Wait a bit to ensure we have the latest URL
+        setVideoGenerationStage("Saving video to database...")
         setTimeout(async () => {
           if (videoUrl) {
             await storeVideoInSupabase(
@@ -201,16 +234,20 @@ export default function NarrationToVideoTab({
               script // Using full script as description
             );
             console.log("Video stored in Supabase successfully");
+            setVideoGenerationStage("Video saved successfully")
+            setIsVideoLoading(false);
           }
         }, 1000);
       } catch (storeErr) {
         console.error("Error storing video in Supabase:", storeErr);
         setError(`Video generated but failed to save: ${storeErr instanceof Error ? storeErr.message : "Unknown error"}`);
+        setIsVideoLoading(false);
       }
     }
     catch (error) {
       console.error("Error generating video:", error);
       setError(`Failed to generate video: ${error instanceof Error ? error.message : "Unknown error"}`);
+      setIsVideoLoading(false);
     } finally {
       setLoading(false);
     }
@@ -388,15 +425,15 @@ export default function NarrationToVideoTab({
         </DialogContent>
       </Dialog>
 
-      {/* Preview Drawer */}
-      {videoUrl && (
-        <Drawer open={showPreviewDrawer} onOpenChange={handlePreviewDrawerClose}>
-          <DrawerContent className="text-white bg-transparent backdrop-blur-lg border-none shadow-md shadow-neutral-500">
-            <div className="mx-auto w-full md:max-w-2xl">
-              <DrawerHeader>
-                <DrawerTitle className="text-center">
-                  {isRawVideo ? (
-                    <div className="flex items-center justify-center gap-2">
+      {/* Preview Video Drawer - Now shows during loading state as well */}
+      <Drawer open={showPreviewDrawer} onOpenChange={handlePreviewDrawerClose}>
+        <DrawerContent className="text-white bg-transparent backdrop-blur-sm border-none shadow-md shadow-neutral-500">
+          <div className="mx-auto w-full md:max-w-2xl">
+            <DrawerHeader>
+              <DrawerTitle className="text-center">
+                {videoUrl ? (
+                  isRawVideo ? (
+                    <div className="md:flex text-center items-center justify-center gap-2">
                       <span>Preview (Raw Video)</span>
                       {isCaptioning && (
                         <div className="flex items-center gap-1 text-yellow-300 text-sm font-normal animate-pulse">
@@ -407,10 +444,17 @@ export default function NarrationToVideoTab({
                     </div>
                   ) : (
                     "Preview (Captioned Video)"
-                  )}
-                </DrawerTitle>
-              </DrawerHeader>
-              <div className="p-4 flex flex-col items-center justify-end">
+                  )
+                ) : (
+                  <div className="flex items-center justify-center gap-2">
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                    <span>{videoGenerationStage || "Generating Video..."}</span>
+                  </div>
+                )}
+              </DrawerTitle>
+            </DrawerHeader>
+            <div className="p-4 flex flex-col items-center justify-end">
+              {videoUrl ? (
                 <VideoPreview
                   download={playableVideoUrl}
                   generated={generated}
@@ -420,45 +464,53 @@ export default function NarrationToVideoTab({
                   isRawVideo={isRawVideo}
                   isCaptioning={isCaptioning}
                 />
-              </div>
-              <DrawerFooter>
-                <DrawerClose asChild>
-                  <Button onClick={confirmPreviewClose} className="gap-2 bg-transparent rounded-3xl" variant="outline">
-                    Close
-                  </Button>
-                </DrawerClose>
-              </DrawerFooter>
+              ) : (
+                <div className="w-full h-64 md:h-96 flex flex-col items-center justify-center bg-neutral-900 rounded-lg">
+                  <Loader2 className="h-12 w-12 animate-spin text-indigo-500 mb-4" />
+                  <p className="text-lg">{videoGenerationStage || "Generating your video..."}</p>
+                  <p className="text-sm text-gray-400 mt-2">This may take a few minutes</p>
+                </div>
+              )}
             </div>
-          </DrawerContent>
-        </Drawer>
-      )}
+            <DrawerFooter>
+              <DrawerClose asChild>
+                <Button onClick={() => setShowPreviewWarning(true)} className="gap-2 bg-transparent rounded-3xl" variant="outline">
+                  Close
+                </Button>
+              </DrawerClose>
+            </DrawerFooter>
+          </div>
+        </DrawerContent>
+      </Drawer>
 
       <Dialog open={showPreviewWarning} onOpenChange={setShowPreviewWarning}>
-        <DialogContent className="bg-neutral-950 text-white border-none shadow-sm shadow-neutral-500">
+        <DialogContent className="bg-black/20 backdrop-blur-sm text-white border-none shadow-md shadow-indigo-500">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
+            <DialogTitle className="flex items-center gap-2 font-medium">
               <AlertCircle className="h-5 w-5 text-yellow-500" />
               Warning
             </DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="text-neutral-300">
               Closing the video preview may result in losing your credits and video progress. Are you sure you want to proceed?
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setShowPreviewWarning(false)}
-              className="w-fit gap-2 bg-transparent rounded-3xl"
-            >
-              Continue Viewing
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={confirmPreviewClose}
-              className="w-fit gap-2 rounded-3xl"
-            >
-              Close Anyway
-            </Button>
+            <div className="flex gap-2 mx-auto w-fit">
+              <Button
+                variant="outline"
+                onClick={() => setShowPreviewWarning(false)}
+                className="w-fit gap-2 bg-transparent rounded-3xl"
+              >
+                Continue Viewing
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={confirmPreviewClose}
+                className="w-fit gap-2 rounded-3xl"
+              >
+                Close Anyway
+              </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
